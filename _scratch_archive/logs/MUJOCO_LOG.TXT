@@ -1,0 +1,9 @@
+Thu Sep 10 01:17:04 2026
+WARNING: mju_openResource: unknown file 'src\mjlab_microduck\robot\microduck\robot_openmicroduck.xml'
+
+Thu Sep 10 01:17:04 2026
+WARNING: mju_openResource: unknown file 'src\mjlab_microduck\robot\microduck\robot_walk.xml'
+
+Thu Sep 10 01:17:04 2026
+WARNING: mju_openResource: unknown file 'src\mjlab_microduck\robot\microduck\robot_groundcontact.xml'
+

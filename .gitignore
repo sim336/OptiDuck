@@ -1,0 +1,20 @@
+# 大体积原始数据：作为 GitHub Release 附件发布，不进 git 历史
+model_archive/
+bam_dryrun/
+
+# microduck_rl 的旧纯拷贝快照（已被 microduck_rl 子模块取代）
+joyandai/microduck_rl/
+
+# Python / 工具链产物
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+target/
+
+# 操作系统噪音
+Thumbs.db
+desktop.ini
+.DS_Store

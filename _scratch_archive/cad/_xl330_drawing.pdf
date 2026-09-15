@@ -1,0 +1,266 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+	
+<link rel="canonical" href="https://www.robotis.com/index.php">
+
+
+
+<meta name="keywords" content="휴머노이드, 다이나믹셀, Humanoid, DYNAMIXEL, actuator, physicalai">
+<meta name="description" content="로봇전용 엑추에이터 전문기업">
+
+<meta property="og:title" content="ROBOTIS">
+<meta property="og:url" content="https://robotis.com/">
+<meta property="og:description" content="로봇전용 엑추에이터 전문기업">
+<meta property="og:image" content="http://robotis.com/img/common/robotis_og.png">
+
+
+<meta property="og:locale" content="ko_KR" />
+<meta property="og:type" content="website" />
+<meta property="article:tag" content="ROBOTIS" />
+<meta property="og:site_name" content="로보티즈" />
+<meta property="article:section" content="ROBOTIS" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=0,maximum-scale=10">
+<meta name="HandheldFriendly" content="true">
+<meta name="format-detection" content="telephone=no">
+
+<link rel="shortcut icon" type="image/x-icon" href="https://www.robotis.com/img/common/favicon_211001.ico">
+<link rel="icon" type="image/x-icon" href="https://www.robotis.com/img/common/favicon_211001.ico">
+
+
+
+<title>로보티즈</title>
+
+
+<link rel="stylesheet" href="https://www.robotis.com/css/default_shop.css?ver=20260910024818">
+<link rel="stylesheet" href="https://www.robotis.com/css/common.css?ver=20260910024818" >
+<link rel="stylesheet" href="https://www.robotis.com/css/sub.css?ver=20260910024818" >
+
+<link rel="stylesheet" href="https://www.robotis.com/css/button.css?ver=20260910024818">
+
+<!--[if lte IE 8]>
+<script src="https://www.robotis.com/js/html5.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]><script src="https://www.robotis.com/js/html5shiv.min.js"></script><![endif]-->
+<!--[if lt IE 9]><script src="https://www.robotis.com/js/respond.min.js"></script><![endif]-->
+
+<script>
+// 자바스크립트에서 사용하는 전역변수 선언
+var g5_url       = "https://www.robotis.com";
+var g5_bbs_url   = "https://www.robotis.com/model";
+var g5_is_member = "";
+var g5_is_admin  = "";
+var g5_is_mobile = "";
+var g5_bo_table  = "";
+var g5_sca       = "";
+var g5_editor    = "";
+var g5_cookie_domain = "";
+</script>
+
+
+<!-- JQUERY -->
+<script src="https://www.robotis.com/js/jquery-1.12.2.min.js"></script>
+
+<!-- Calander -->
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+<!-- Layer popup -->
+<script src="https://www.robotis.com/js/pop_app.js?ver=20260910024818" ></script>
+
+
+<!-- bxslider -->
+<link rel="stylesheet" href="https://www.robotis.com/css/bxslider/jquery.bxslider.css" >
+<script type="text/javascript" src="https://www.robotis.com/js/library/jquery.easing.1.3.min.js"></script>
+<script type="text/javascript" src="https://www.robotis.com/js/library/tweenmax/TweenMax.min.js"></script>
+<script type="text/javascript" src="https://www.robotis.com/js/library/bxslider/jquery.bxslider.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+
+
+<!-- slick -->
+<link rel="stylesheet" type="text/css" href="https://www.robotis.com/css/slick/slick.css?ver=20260910024818"/>
+<link rel="stylesheet" type="text/css" href="https://www.robotis.com/css/slick/slick-theme_main.css?ver=20260910024818"/>
+<script type="text/javascript" src="https://www.robotis.com/js/library/slick/slick.min.js?ver=20260910024818"></script> 
+
+<!-- jcarousellite -->
+<script type="text/javascript" src="https://www.robotis.com/js/jquery.jcarousellite.min.js"></script>
+
+
+<script src="https://www.robotis.com/js/jquery.menu.js?ver=20260910024818"></script>
+
+<script src="https://www.robotis.com/js/wrest.js?ver=20260910024818"></script>
+
+
+
+<!-- 사용자정의 -->
+<script type="text/javascript" src="https://www.robotis.com/js/common.js?ver=20260910024818"></script>
+<script type="text/javascript" src="https://www.robotis.com/js/main.js?ver=20260910024818"></script>
+
+
+<!-- Npay -->
+<script type="text/javascript" src="//wcs.naver.net/wcslog.js"></script>
+<script type="text/javascript">
+    if(!wcs_add) var wcs_add = {};
+    wcs_add["wa"] = "s_35c9a83dfe7e";
+    wcs.inflow("robotis.com");
+</script>
+    <!-- 2023-11-20 -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1034090759"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date()); gtag('config', 'AW-1034090759');
+    </script>
+    <!-- Event snippet for 페이지 조회 conversion page -->
+    <script>
+        gtag('event', 'conversion', {'send_to': 'AW-1034090759/J_wJCMrXi_UYEIfyi-0D'});
+    </script>
+
+<!-- 20220808 페이스북 픽셀 설정 추가 Meta Pixel Code -->
+<script>
+    !function(f,b,e,v,n,t,s)
+    {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1084558845793661');
+    fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+               src="https://www.facebook.com/tr?id=1084558845793661&ev=PageView&noscript=1"
+    /></noscript>
+<!-- End Meta Pixel Code -->
+</head>
+
+
+<body  >
+ 
+
+	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+	<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1;" charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, target-densitydpi=medium-dpi" />
+		<title>ROBOTIS</title>
+	</head>
+
+	<body>  
+
+		<style>
+
+			.downloadbox { background-color:#ffffff; margin:0;  } 
+
+			.downloadbox  .sub_inner { width:90%; max-width:700px; margin:0 auto;  }
+			.downloadbox  .sub_inner .tit { margin:0 auto; padding:30px 0 5px 0; font-size: 3em;  font-family: 'Nanum Gothic', 'sans-serif'; font-weight:bold; line-height:1.2em; }
+			.downloadbox  .sub_inner .desc { margin-bottom:20px; font-size: 1.5em; color:#6e4f42; font-family: 'Nanum Gothic', 'sans-serif';  }
+			.downloadbox  .sub_inner .subject { font-size: 2em;  border-bottom:1px solid #ded4c8; padding-bottom:5px; font-family: 'Nanum Gothic', 'sans-serif' ; }
+			.downloadbox  .sub_inner .bonmoon { font-size:1em; text-align:left; line-height:1.5em;  } 
+
+			.downloadbox .welcome_msg .welcome_img { float:left; width: 35%; }
+			.downloadbox .welcome_msg .welcome_img img { width: 80%; }
+			.downloadbox .welcome_msg .welcome_txt { float:left; width: 60%; box-sizing:border-box; padding:30px 0px;  text-align:left; }
+			.downloadbox .welcome_msg .welcome_txt .bonmoon_box  { clear:left; width:100%; padding: 0;  margin-top:20px; }
+
+			.downloadbox  .sub_inner .path_box {background-color:#f0f0f0; padding:20px; text-align:left; clear:both; }
+			.downloadbox  .sub_inner .path_box a { text-decoration:none;}
+
+			.downloadbox  .sub_inner .banner {width:100%;  }
+			.downloadbox  .sub_inner .banner img {width:100%; margin-top:80px;}
+
+
+		</style>
+
+
+		<div class="body_wrap downloadbox">  
+
+			
+				<div class="sub_inner center">  
+
+					<div class="welcome_msg">
+						<div class="welcome_img"><img src="https://www.robotis.com/img/common/download_20171016.jpg" ></div>
+						<div class="welcome_txt">
+							<span class="tit">ROBOTIS DOWNLOAD</span> 
+									
+							<div class="bonmoon_box">
+
+								
+									<span class="bonmoon">	
+										Your download will start shortly.<br />
+										Problems with the download?  Please use the direct link below.
+									</span>
+									</span>
+
+															</div>
+
+						</div>
+					</div>
+							
+					<div class="path_box">
+						Direct Link  : <a href="https://www.robotis.com/service/download.php?no=1986" target="_self">https://www.robotis.com/service/download.php?no=1986</a> <br>
+					</div>
+
+					<div class="banner">
+					
+													
+							
+								<img src="/data/banner/3731884498_du2hvjqm_d56db97174bd45ef2bffbf9ee821fbc61c40c2e9.jpg">
+
+												</div>
+					
+				</div>
+
+
+		</div>
+
+	</body>
+
+	
+	<script>
+
+		var httpCode = '200';
+
+		function sleep(num){	//[1/1000초]
+			var now = new Date();
+			var stop = now.getTime() + num;
+			while(true){
+				now = new Date();
+				 if(now.getTime() > stop)return;
+
+			}
+		}
+
+		function call_url(url){
+			sleep(2000);
+			location.href=url;
+		}
+
+		if(httpCode =="200" || httpCode =="302" || httpCode =="301"){ //성공
+			call_url('https://www.dropbox.com/s/gxgye7wt5sbt4i4/XL,XC-330.pdf?dl=1');
+		}
+
+
+	</script>
+
+	<!-- Global site tag (gtag.js) - Google Analytics -->
+	<!--  2017년12월26일 변경 : ked -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=UA-83196341-1"></script>
+	<script>
+	  window.dataLayer = window.dataLayer || [];
+	  function gtag(){dataLayer.push(arguments);}
+	  gtag('js', new Date());
+
+	  gtag('config', 'UA-83196341-1');
+	</script>
+
+
+	</html>
+
+

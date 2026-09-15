@@ -1,0 +1,281 @@
+ 
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"> 
+<html lang="en">
+<head>
+    <!-- 2023-11-20 -->
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-1034090759"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date()); gtag('config', 'AW-1034090759');
+    </script>
+    <!-- Event snippet for 페이지 조회 conversion page -->
+    <script>
+        gtag('event', 'conversion', {'send_to': 'AW-1034090759/J_wJCMrXi_UYEIfyi-0D'});
+    </script>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-83196341-18"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date()); gtag('config', 'UA-83196341-18');
+    </script>
+    
+<meta charset="utf-8">
+    <title>ROBOTIS</title>
+    <meta property="og:type" content="website">
+            <meta name="description" content="Creative provider ROBOTIS" />
+        <meta property="og:description" content="Creative provider ROBOTIS">
+        <meta property="og:title" content="ROBOTIS" />
+        <meta property="og:url" content="http://www.robotis.com" />
+        <meta property="og:image" content="http://www.robotis.com/img/common/org_img20171020.png" />
+        <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="ROBOTIS" />
+
+<meta property="og:locale" content="en_US" />
+<meta property="article:tag" content="ROBOTIS" />
+<meta property="article:section" content="ROBOTIS" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=0,maximum-scale=10">
+<meta name="HandheldFriendly" content="true">
+<meta name="format-detection" content="telephone=no">
+
+<!--link rel="shortcut icon" type="image/x-icon" href="https://en.robotis.com/img/common/favicon_16x16_ver1701.ico">-->
+<link rel="shortcut icon" type="image/x-icon" href="https://en.robotis.com/img/common/favicon_211001.ico">
+<link rel="icon" type="image/x-icon" href="https://en.robotis.com/img/common/favicon_211001.ico">
+
+
+
+
+
+
+<link rel="stylesheet" href="https://en.robotis.com/css/default_shop.css?ver=20260910024849">
+<link rel="stylesheet" href="https://en.robotis.com/css/common.css?ver=20260910024849" >
+<link rel="stylesheet" href="https://en.robotis.com/css/sub.css?ver=20260910024849" >
+
+
+<link rel="stylesheet" href="https://en.robotis.com/css/button.css?ver=20260910024849">
+
+<!--[if lte IE 8]>
+<script src="https://en.robotis.com/js/html5.js"></script>
+<![endif]-->
+
+<!--[if lt IE 9]><script src="https://en.robotis.com/js/html5shiv.min.js"></script><![endif]-->
+<!--[if lt IE 9]><script src="https://en.robotis.com/js/respond.min.js"></script><![endif]-->
+
+<script>
+// 자바스크립트에서 사용하는 전역변수 선언
+var g5_url       = "https://en.robotis.com";
+var g5_bbs_url   = "https://en.robotis.com/model";
+var g5_is_member = "";
+var g5_is_admin  = "";
+var g5_is_mobile = "";
+var g5_bo_table  = "";
+var g5_sca       = "";
+var g5_editor    = "";
+var g5_cookie_domain = "";
+</script>
+
+
+<!-- JQUERY -->
+<script src="https://en.robotis.com/js/jquery-1.12.2.min.js"></script>
+
+<!-- Calander -->
+<link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+<!-- Layer popup -->
+<script src="https://en.robotis.com/js/pop_app.js?ver=20260910024849" ></script>
+
+
+<!-- bxslider -->
+<link rel="stylesheet" href="https://en.robotis.com/css/bxslider/jquery.bxslider.css" >
+<script type="text/javascript" src="https://en.robotis.com/js/library/jquery.easing.1.3.min.js"></script>
+<script type="text/javascript" src="https://en.robotis.com/js/library/tweenmax/TweenMax.min.js"></script>
+<script type="text/javascript" src="https://en.robotis.com/js/library/bxslider/jquery.bxslider.min.js"></script>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
+
+
+<!-- slick -->
+<link rel="stylesheet" type="text/css" href="https://en.robotis.com/css/slick/slick.css?ver=20260910024849"/>
+<link rel="stylesheet" type="text/css" href="https://en.robotis.com/css/slick/slick-theme_main_en.css?ver=20260910024849"/>
+<script type="text/javascript" src="https://en.robotis.com/js/library/slick/slick.min.js?ver=20260910024849"></script> 
+
+
+<!-- jcarousellite -->
+<script type="text/javascript" src="https://en.robotis.com/js/jquery.jcarousellite.min.js"></script>
+
+
+<script src="https://en.robotis.com/js/jquery.menu.js?ver=20260910024849"></script>
+
+<script src="https://en.robotis.com/js/wrest.js?ver=20260910024849"></script>
+
+
+<!-- cookie banner  -->
+<link rel="stylesheet" href="https://en.robotis.com/js/cookiebanner/cookie-banner.css?ver=20260910024849">
+<!-- cookie banner : Plugin scripts -->
+<script src="https://en.robotis.com/js/cookiebanner/jquery.cookie-banner.js?ver=20260910024849"></script>
+<script src="https://en.robotis.com/js/cookiebanner/scripts.js?ver=20260910024849"></script>
+
+
+<!-- 사용자정의 -->
+<script type="text/javascript" src="https://en.robotis.com/js/common.cookie.js?ver=20260910024849" class="block-cookie"></script>
+<script type="text/javascript" src="https://en.robotis.com/js/common.js?ver=20260910024849"></script>
+<script type="text/javascript" src="https://en.robotis.com/js/main.js?ver=20260910024849"></script> 
+
+
+</head>
+
+
+<body  >
+ 
+<!-- 20200212 구글태그매니저 -->
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-N6V6FW2"
+height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
+<!-- 20200212 구글태그매니저 끝 -->
+    
+    
+
+	<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+	<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1;" charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, target-densitydpi=medium-dpi" />
+		<title>ROBOTIS</title>
+	</head>
+
+	<body>  
+
+		<style>
+
+			.downloadbox { background-color:#ffffff; margin:0;  } 
+
+			.downloadbox  .sub_inner { width:90%; max-width:700px; margin:0 auto;  }
+			.downloadbox  .sub_inner .tit { margin:0 auto; padding:30px 0 5px 0; font-size: 3em;  font-family: 'sans-serif'; font-weight:bold; line-height:1.2em; }
+			.downloadbox  .sub_inner .desc { margin-bottom:20px; font-size: 1.5em; color:#6e4f42; font-family:'sans-serif';  }
+			.downloadbox  .sub_inner .subject { font-size: 2em;  border-bottom:1px solid #ded4c8; padding-bottom:5px; font-family: 'sans-serif' ; }
+			.downloadbox  .sub_inner .bonmoon { font-size:1em; text-align:left; line-height:1.5em;  } 
+
+			.downloadbox .welcome_msg .welcome_img { float:left; width: 35%; }
+			.downloadbox .welcome_msg .welcome_img img { width: 80%; }
+			.downloadbox .welcome_msg .welcome_txt { float:left; width: 60%; box-sizing:border-box; padding:30px 0px;  text-align:left; }
+			.downloadbox .welcome_msg .welcome_txt .bonmoon_box  { clear:left; width:100%; padding: 0;  margin-top:20px; }
+
+			.downloadbox  .sub_inner .path_box {background-color:#f0f0f0; padding:20px; text-align:left; clear:both; }
+			.downloadbox  .sub_inner .path_box a { text-decoration:none;}
+
+			.downloadbox  .sub_inner .banner {width:100%;  }
+			.downloadbox  .sub_inner .banner img {width:100%; margin-top:80px;}
+
+
+		</style>
+
+
+		<div class="body_wrap downloadbox">  
+
+			
+				<div class="sub_inner center">  
+
+					<div class="welcome_msg">
+						<div class="welcome_img"><img src="https://en.robotis.com/img/common/download_20171016.jpg" ></div>
+						<div class="welcome_txt">
+							<span class="tit">ROBOTIS  DOWNLOAD</span> 
+									
+							<div class="bonmoon_box">
+
+								
+									<span class="bonmoon">	
+										Your download will start shortly..<br />
+										Problems with the download?  Please use the direct link below.
+									</span>
+
+															</div>
+
+						</div>
+					</div>
+
+					<div class="path_box">
+						Direct Link  : <a href="https://en.robotis.com/service/download.php?no=1987" target="_self">https://en.robotis.com/service/download.php?no=1987</a> <br>
+                        <br>Direct Link 2 (China) : <a href="#" onclick="downLink()">Download</a>
+					</div>
+
+					<div class="banner">
+					
+													
+												</div>
+					
+				</div>
+
+
+		</div>
+
+	</body>
+
+	
+	<script>
+
+		var httpCode = '200';
+        var no = '1987';
+        var fileSize = '0';
+		
+
+		function sleep(num){	//[1/1000초]
+			var now = new Date();
+			var stop = now.getTime() + num;
+			while(true){
+				now = new Date();
+				 if(now.getTime() > stop)return;
+
+			}
+		}
+
+		function call_url(url){
+			sleep(2000);
+			location.href=url;
+		}
+
+		if(httpCode =="200" || httpCode =="302" || httpCode =="301" ){ //성공
+			call_url('https://www.dropbox.com/s/qlzmp8mlvzrxmzu/XL,XC-330.stp?dl=1');
+		}
+
+        var downLink = function () {
+            var ajax_url = "./ajax_direct_file_upload_check.php?no="+no+"&fileSize="+fileSize;
+            var ajax_data = "";
+
+            $.ajax({
+                async: false,
+                type: "POST",
+                url: ajax_url,
+                data : ajax_data,
+                dataType: 'jsonp',
+                jsonpCallback: "callback",
+                success: function (jsonData) {
+                    if(jsonData.code == 200) {
+                        document.location.href = 'direct_download.php?no=' + jsonData.return_val.no;
+                    } else if(jsonData.code == 202) {
+                        // 파일 사이즈 체크
+                        fileSize = jsonData.return_val.fileSize;
+                        sleep(2000);
+                        console.log('wait');
+                        downLink();
+                    } else {
+                        alert('File Error');
+                    }
+                    console.log(jsonData);
+                },
+                error:function(request, status, error){
+                    alert('Link Error');
+                    console.log( "code : " + request.status + "\n message : " + request.responseText + "\n" + error);
+                }
+            });
+        }
+
+	</script>
+
+	</html>
+
+
