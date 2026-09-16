@@ -1,9 +1,9 @@
 [submodule "microduck"]
 	path = joyandai/microduck
-	url = https://github.com/sim336/microduck.git
+	url = https://github.com/pollen-robotics/microduck.git
 [submodule "microduck_rl"]
 	path = microduck_rl
 	url = https://github.com/sim336/microduck_rl.git
 [submodule "OpenMicroDuck"]
 	path = OpenMicroDuck
-	url = https://github.com/sim336/OpenMicroDuck.git
+	url = https://github.com/JoyandAI/OpenMicroDuck.git
