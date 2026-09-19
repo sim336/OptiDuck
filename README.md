@@ -63,12 +63,24 @@ Radxa ZERO 3W 上跑着自研的 Python 状态服务（systemd 托管，端口 8
 
 ### 移动端：Android 远程运维 App
 
-Kotlin + Jetpack Compose 写的板端运维 App，底部四个页签 —— 连接 / 状态 / 终端 / 功能，
+Kotlin + Jetpack Compose 写的板端运维 App，底部四个页签 —— 连接 / 状态 / 功能 / 终端，
 支持远程状态告警、远程 shell（WebSocket + PTY，带 TAB 补全）与 APK 自更新。
 
-| 连接 | 状态 | 终端 | 功能 |
-|---|---|---|---|
-| ![app-connect](assets/screenshots/app/app-01-connect.png) | ![app-status](assets/screenshots/app/app-02-status.png) | ![app-terminal](assets/screenshots/app/app-03-terminal.png) | ![app-func](assets/screenshots/app/app-04-func.png) |
+下面四张是 **Android 模拟器里实际运行 App、并真的连上这块板子** 截的图：
+
+| 连接 | 状态 |
+|---|---|
+| ![app-connect](assets/screenshots/app/app-01-connect.png) | ![app-status](assets/screenshots/app/app-02-status.png) |
+| 板子地址、蒲公英检测、APK 自更新入口 | 实时读板上 8070 服务，2.5 s 刷新；图中的温度 / 负载 / IP 都是这台板子的真实值 |
+
+| 功能 | 终端 |
+|---|---|
+| ![app-func](assets/screenshots/app/app-03-func.png) | ![app-terminal](assets/screenshots/app/app-04-terminal.png) |
+| 按官方 console 复刻的功能地图，未接入的项标为「未实现 / 待接入」 | 远程 shell：首包带 token 鉴权，连上后 `uname -sr` 返回 `Linux 6.1.84-10-rk2410-nocsf` |
+
+> 终端那张图里的输出是**真的从那块板子上取回**的，不是摆拍：
+> App 先从 `/api/term` 拿 token，再带 token 连 8071 的 WebSocket，
+> 板子侧为每个连接 spawn 一个 PTY bash。协议细节见 [board/report_terminal.py](board/report_terminal.py)。
 
 ---
 
@@ -106,7 +118,7 @@ flowchart TB
         R --> BUS["舵机总线 /dev/ttyS2"]
         R --> IMU["IMU /dev/i2c-4"]
     end
-    subgraph MINE["本项目自研（boards/ + app/）"]
+    subgraph MINE["本项目自研（board/ + app/）"]
         S["robot_status.py<br/>状态服务 :8070"] 
         T["report_terminal.py<br/>WebSocket PTY 终端 :8071"]
     end
@@ -185,6 +197,24 @@ git submodule update --init --recursive
 - [docs/Radxa_ZERO_3W_开发教程_发布版.md](docs/Radxa_ZERO_3W_开发教程_发布版.md)
 
 > `docs/internal/` 里是整理前的个人草稿，保留只是为了记录，别当成正式教程读。
+
+**④ 移动端 App** —— 看 [`app/`](app/)
+
+Kotlin + Jetpack Compose，Android Gradle 工程。仓库里**不带** Gradle Wrapper 和 JDK，
+用你自己的环境编译即可：
+
+```bash
+cd app
+# app/local.properties 里写好 sdk.dir=<你的 Android SDK 路径>
+gradle assembleDebug          # 产物：app/app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/app/build/outputs/apk/debug/app-debug.apk
+```
+
+装好后在「连接」页把**板子地址**填成板子的 IP（默认填的是蒲公英虚拟 IP `172.16.0.127`），
+状态页就会去读 `<地址>:8070/api/status`，终端页会去 `<地址>:8071` 建 WebSocket。
+
+> ⚠️ Gradle 工程目录是 `app/`，里面的模块目录**也叫** `app/`，所以产物路径是 `app/app/build/...`，
+> 不是 `app/build/...`。别找错。
 
 ---
 
@@ -440,4 +470,4 @@ git merge upstream/main
 
 | 版本 | 日期 | 内容 |
 |---|---|---|
-| **v1.00** | 2026-09-19 | 仓库整体整理为开源项目形态：<br>① 目录重构 —— 教程归 `docs/`、URDF 工具链归 `tools/`、板端运维归 `board/`、Android App 归 `app/`、训练改动归 `training/`、截图与渲染归 `assets/`；<br>② 补齐 `LICENSE`（Apache-2.0）、`NOTICE.md`（分项署名与上游许可）、`.gitignore`；<br>③ 新增真实截图墙（板端看板 / 三个 URDF 工具 / MJCF 预览 / App 四页，均为实际运行截图）；<br>④ 修复状态看板「磁盘」卡片把字节数直接显示的 bug（改为 `xx.x GB 共 xx.x GB 剩`）；<br>⑤ 修复搬迁后工具链的模型路径（viewer / editor / wizard 全部指向仓内路径），并把 `serve.mjs` 的根目录用法写进文档；<br>⑥ 实测并记录板载 ONNX 推理延迟（p50 0.367 ms / 1000 步 / `over_20_ms: 0`）。 |
+| **v1.00** | 2026-09-19 | 仓库整体整理为开源项目形态：<br>① 目录重构 —— 教程归 `docs/`、URDF 工具链归 `tools/`、板端运维归 `board/`、Android App 归 `app/`、训练改动归 `training/`、截图与渲染归 `assets/`；<br>② 补齐 `LICENSE`（Apache-2.0）、`NOTICE.md`（分项署名与上游许可）、`.gitignore`；<br>③ 新增真实截图墙（板端看板 / 三个 URDF 工具 / MJCF 预览 / App 四页，均为实际运行截图）；<br>④ 修复状态看板「磁盘」卡片把字节数直接显示的 bug（改为 `xx.x GB 共 xx.x GB 剩`）；<br>⑤ 修复搬迁后工具链的模型路径（viewer / editor / wizard 全部指向仓内路径），并把 `serve.mjs` 的根目录用法写进文档；<br>⑥ 实测并记录板载 ONNX 推理延迟（p50 0.367 ms / 1000 步 / `over_20_ms: 0`）；<br>⑦ App 端到端联调：重新编译 debug APK 装进模拟器，实测「状态页读到板上真实指标 + 终端 WebSocket 带 token 连上并执行 `uname -sr`」，截图与结论一并入库。 |
