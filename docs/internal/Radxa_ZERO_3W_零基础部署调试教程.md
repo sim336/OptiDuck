@@ -10,12 +10,12 @@
 
 每一步都按同一套四问写清楚，你可以只看你需要的那一问：
 
-| 标记 | 含义 |
-| --- | --- |
-| **在干吗** | 这条命令 / 这个动作，在系统里到底发生了什么（不是"照着敲"，而是知道它在动什么） |
-| **为什么必须做** | 不做会怎样；以及为什么是这个做法而不是别的做法 |
-| **完成标志** | 怎么算成功 —— 用可观察的输出判断，不靠"感觉应该行" |
-| **卡住了怎么办** | 这一步最常见的失败长相 + 往哪查 |
+| 标记                   | 含义                                                                            |
+| ---------------------- | ------------------------------------------------------------------------------- |
+| **在干吗**       | 这条命令 / 这个动作，在系统里到底发生了什么（不是"照着敲"，而是知道它在动什么） |
+| **为什么必须做** | 不做会怎样；以及为什么是这个做法而不是别的做法                                  |
+| **完成标志**     | 怎么算成功 —— 用可观察的输出判断，不靠"感觉应该行"                            |
+| **卡住了怎么办** | 这一步最常见的失败长相 + 往哪查                                                 |
 
 同时标注每个步骤的性质：
 
@@ -56,6 +56,7 @@
 ### 0.4 Windows PowerShell 的 `$env:USERPROFILE` 展开坑
 
 - **症状**：教程里写的
+
   ```
   type $env:USERPROFILE\.ssh\id_ed25519.pub | ssh user@ip "cat >> ~/.ssh/authorized_keys"
   ```
@@ -82,6 +83,7 @@
 
 - **症状**：在桌面/终端里手动连上 Wi-Fi 后一切正常，但**重启后板子不联网、SSH 连不上**；接上显示器，只要**选账户输一次密码登录**，Wi-Fi 立刻自己就通了 —— 看着像"必须先登录才行"，其实是**密码取不到**；
 - **根因**：这个 Wi-Fi 连接的密码（PSK）是**以用户身份**保存的：Keyfile 里写着 `psk-flags=1`（agent-owned），**文件里根本没有 `psk=` 这一行**。NetworkManager 开机时以 root 身份运行，取密码要靠桌面会话里的 `secret agent`；而你屏蔽 sddm（图形登录）之后，开机**没有任何用户会话 → 没有 agent → 直接判失败**：
+
   ```
   (wifi) access point '天问412' has security, but secrets are required.
   no secrets: No agents were available for this request.
@@ -89,11 +91,14 @@
   Activation: failed for connection '天问412'
   ```
 - **一眼确诊**（在还能连上的时候跑）：
+
   ```bash
   sudo grep -n -E "psk-flags|^psk=" /etc/NetworkManager/system-connections/*.nmconnection
   ```
+
   看到 `psk-flags=1` 且**没有** `psk=` → 就是这个坑；
 - **修法**（一条命令，把密码改成"系统所有"，开机不需要任何会话）：
+
   ```bash
   # 自动取 UUID，避免手输中文 SSID 踩 IME 坑
   UUID=$(nmcli -t -f UUID,TYPE connection show | awk -F: '$2=="802-11-wireless"{print $1; exit}')
@@ -109,12 +114,15 @@
 
   sudo reboot
   ```
+
   **验收**：重启后**不接显示器、不做任何登录**，等 90 秒直接
   ```powershell
   ssh radxa@<板子IP>
   ```
+
   能直接进 = 修好了（显示器上仍旧停在 `login:` 属于正常，与联网无关）；
 - **两个小坑**：
+
   1. `nmcli connection modify` 设置时可以用别名 `wifi-sec.psk-flags`，但 `nmcli -f` **查询字段必须写全名** `802-11-wireless-security.psk-flags`，否则报 `invalid field`；
   2. 改完密码会**明文**存在 `/etc/NetworkManager/system-connections/*.nmconnection`（权限 `600`，仅 root 可读）——这是 NetworkManager 的标准做法，不是配置错误；
 - **不需要排查的方向**（别浪费时间）：`wpa_supplicant` 是 active **属于正常**（Debian 上 NetworkManager 通过 D-Bus 调它做 WPA 握手），不是"抢占网卡"；`systemd-networkd` 应该 inactive。
@@ -125,18 +133,19 @@
 
 > **型号先确认清楚（别再纠结了）**：Radxa 官方**没有**一块叫 "ZERO 3" 的板子 —— **"ZERO 3" 只是这一代的系列名 / 文档目录名**，实际在售的只有两个型号：
 >
-> | | Radxa **ZERO 3W** | Radxa **ZERO 3E** |
-> | --- | --- | --- |
-> | 无线 | ✅ Wi-Fi 6 + BT 5.4（AIC8800D80） | ❌ 没有 |
-> | 有线 | ❌ 没有网口 | ✅ 千兆以太网（支持 PoE，需另配 HAT） |
-> | 存储 | 板载 eMMC **0**/8/16/32/64GB 可选 + microSD | 只有 microSD |
-> | SoC / 内存 / 尺寸 | RK3566 / LPDDR4 1~8GB / 65×30mm | 与 3W 相同 |
+> |                   | Radxa**ZERO 3W**                           | Radxa**ZERO 3E**                |
+> | ----------------- | ------------------------------------------------ | ------------------------------------- |
+> | 无线              | ✅ Wi-Fi 6 + BT 5.4（AIC8800D80）                | ❌ 没有                               |
+> | 有线              | ❌ 没有网口                                      | ✅ 千兆以太网（支持 PoE，需另配 HAT） |
+> | 存储              | 板载 eMMC**0**/8/16/32/64GB 可选 + microSD | 只有 microSD                          |
+> | SoC / 内存 / 尺寸 | RK3566 / LPDDR4 1~8GB / 65×30mm                 | 与 3W 相同                            |
 >
 > **你的板子 = ZERO 3W（eMMC 0GB 的 SKU）**：Wi-Fi 能连 + 没有 eMMC + 没有网口，三条特征全中，只可能是 3W。所谓"无 eMMC"不是另一个型号，而是 3W 的存储选配（0GB）。
 >
 > 被绕晕的来源：镜像名 `radxa-zero3_bookworm_kde_b1`、主机名 `radxa-zero3`、文档目录 `/zero/zero3/` —— **两个型号共用这套命名**，到处写着 "zero3"，但它不代表型号。
 >
 > 想自己再确认一次 —— **注意 `/proc/device-tree/model` 在 3W 和 3E 上都只打印通用的 `Radxa ZERO 3`，不带 W/E 后缀**（2026-09-15 在真机上验证过），所以别靠它区分型号：
+>
 > ```bash
 > ls /sys/class/net/                      # 有 wlan0 → 3W；有 eth0 → 3E（3E 无无线，3W 无网口）
 > ls /dev/mmcblk*                         # 只有 mmcblk1 → 无 eMMC；另有 mmcblk0/mmcblk2 → 有 eMMC
@@ -276,12 +285,12 @@ Radxa ZERO 3W 是鸭子的**"大脑/主控"**。整台 Microduck（约 25 cm、8
 
 **卡住了怎么办**：
 
-| 你看到的 | 说明什么 | 去哪 |
-| --- | --- | --- |
-| 黑屏 / 无 HDMI 输出 | 板子没起来，或线/显示器接口不对（注意是 **Micro**-HDMI） | 先换线换屏；仍不行查 §0.1 电源 |
-| 掉进 `initramfs` / `(initramfs)` 提示符 | 卡没读到、或分区表坏了 | §0.6 的三种情况对照表 |
-| 一直停在 Radxa 的启动 logo | 卡读到了但 rootfs 挂不上 | §0.2（烧录被 Windows 干扰） |
-| 进了命令行而不是桌面 | 可能是 KDE 启动失败 | 先用命令行继续（后面 §5 照样能走），再查 `journalctl -b` |
+| 你看到的                                   | 说明什么                                                      | 去哪                                                       |
+| ------------------------------------------ | ------------------------------------------------------------- | ---------------------------------------------------------- |
+| 黑屏 / 无 HDMI 输出                        | 板子没起来，或线/显示器接口不对（注意是**Micro**-HDMI） | 先换线换屏；仍不行查 §0.1 电源                            |
+| 掉进`initramfs` / `(initramfs)` 提示符 | 卡没读到、或分区表坏了                                        | §0.6 的三种情况对照表                                     |
+| 一直停在 Radxa 的启动 logo                 | 卡读到了但 rootfs 挂不上                                      | §0.2（烧录被 Windows 干扰）                               |
+| 进了命令行而不是桌面                       | 可能是 KDE 启动失败                                           | 先用命令行继续（后面 §5 照样能走），再查`journalctl -b` |
 
 ---
 
@@ -307,9 +316,11 @@ Radxa ZERO 3W 是鸭子的**"大脑/主控"**。整台 Microduck（约 25 cm、8
   ```
 
 > **如果命令行连不上、或 SSID/密码里有中文**：用 `nmtui`（全键盘操作的界面，能避开中文 IME 的坑）：
+>
 > ```bash
 > sudo nmtui
 > ```
+>
 > 进去后选 **Activate a connection** → 选中你的 Wi-Fi → 输密码。
 > ⚠️ 注意：`nmtui` 的 **Activate a connection 只是"连一次"**，想让它开机自动连，得进 **Edit a connection** 把 `Automatically connect` 勾上 `[X]` —— 但更推荐直接用 §0.7 的 `nmcli connection modify` 一条命令搞定。
 
@@ -339,10 +350,10 @@ ip addr show wlan0
 
 > **在干吗**：造一对"钥匙"。SSH 免密登录的原理是**非对称加密** —— 生成一对数学上配对的密钥：
 >
-> | 文件 | 放哪 | 作用 |
-> | --- | --- | --- |
-> | `id_ed25519`（**私钥**） | 留在你的 Windows，**永远不要给任何人** | 相当于钥匙本身 |
-> | `id_ed25519.pub`（**公钥**，`.pub` 结尾） | 拷给板子 | 相当于锁芯：板子拿它来验证"敲门的人手里有没有配对的钥匙" |
+> | 文件                                                | 放哪                                         | 作用                                                     |
+> | --------------------------------------------------- | -------------------------------------------- | -------------------------------------------------------- |
+> | `id_ed25519`（**私钥**）                    | 留在你的 Windows，**永远不要给任何人** | 相当于钥匙本身                                           |
+> | `id_ed25519.pub`（**公钥**，`.pub` 结尾） | 拷给板子                                     | 相当于锁芯：板子拿它来验证"敲门的人手里有没有配对的钥匙" |
 >
 > 所以下面拷过去的**永远是 `.pub` 那个文件**，别拷错。
 > **为什么用 ed25519**：现代默认算法，比老式的 RSA 更短、更快、更安全，Windows/Linux 都原生支持。
@@ -394,6 +405,7 @@ ssh radxa@<板子IP>
 #### 步骤 3：在板子上把公钥装进 authorized_keys（3 行）
 
 > **在干吗**：逐行解释这三条 ——
+>
 > 1. `mkdir -p ~/.ssh`：建 `~/.ssh` 目录，`-p` 表示"已存在就别报错"（幂等）；
 > 2. `cat /tmp/id_ed25519.pub >> ~/.ssh/authorized_keys`：把公钥**追加**到白名单里。**注意是 `>>` 不是 `>`** —— `>` 会**清空重写**，如果你以后再加第二台电脑的钥匙，用错符号会把第一把删掉；
 > 3. `chmod 600 ~/.ssh/authorized_keys`：把权限收紧成"只有你自己能读"。**这一步不是可选的** —— `sshd` 出于安全会**主动拒绝**权限过宽的密钥文件，表现为"公钥明明放进去了却还要密码"，极难查。
@@ -428,11 +440,11 @@ ssh radxa@<板子IP>
 
 **卡住了怎么办**：
 
-| 现象 | 原因 | 修法 |
-| --- | --- | --- |
-| 仍要密码 | 公钥没进去 / 权限太宽 | 在板子上看 `cat ~/.ssh/authorized_keys` 有没有那行；`ls -l ~/.ssh/authorized_keys` 是不是 `-rw-------` |
-| 仍要密码，且你重刷过系统 | 板子重建过 host key，Windows 记住了旧的 | `ssh-keygen -R <板子IP>` 清掉旧记录再连 |
-| `Permission denied (publickey)` | 拷过去的是私钥不是公钥，或内容被截断 | 重做步骤 1，确认文件名以 `.pub` 结尾 |
+| 现象                              | 原因                                    | 修法                                                                                                        |
+| --------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| 仍要密码                          | 公钥没进去 / 权限太宽                   | 在板子上看`cat ~/.ssh/authorized_keys` 有没有那行；`ls -l ~/.ssh/authorized_keys` 是不是 `-rw-------` |
+| 仍要密码，且你重刷过系统          | 板子重建过 host key，Windows 记住了旧的 | `ssh-keygen -R <板子IP>` 清掉旧记录再连                                                                   |
+| `Permission denied (publickey)` | 拷过去的是私钥不是公钥，或内容被截断    | 重做步骤 1，确认文件名以`.pub` 结尾                                                                       |
 
 **为什么必须配免密 SSH**：不只是为了少打字 —— ① 后面的 `provision` 脚本会让板子重启并自己重连，密码登录没法在重启后自动重连；② 本节之后每一个命令都要跨机器执行，每次手输密码会让你在几十个步骤里疯掉。
 
@@ -452,12 +464,12 @@ ssh radxa@<板子IP>
 
 **本节完成标志**（全部满足才进 §7）：
 
-| 检查 | 期望 |
-| --- | --- |
-| `ls -l /dev/ttyS2` | 节点存在 |
-| `sudo fuser -v /dev/ttyS2` | **没有任何进程占着**（有 agetty 就是没配好） |
-| `ls /usr/local/lib/libonnxruntime.so*` | 存在 1.28.0 |
-| `ls ~/install.sh ~/team.dev.pub` | 都在 |
+| 检查                                     | 期望                                               |
+| ---------------------------------------- | -------------------------------------------------- |
+| `ls -l /dev/ttyS2`                     | 节点存在                                           |
+| `sudo fuser -v /dev/ttyS2`             | **没有任何进程占着**（有 agetty 就是没配好） |
+| `ls /usr/local/lib/libonnxruntime.so*` | 存在 1.28.0                                        |
+| `ls ~/install.sh ~/team.dev.pub`       | 都在                                               |
 
 ### 6.1 【只读】先跑 7 条诊断（SSH 进去板子后敲）
 
@@ -490,28 +502,28 @@ systemctl is-enabled serial-getty@ttyS2.service 2>/dev/null; systemctl is-active
 
 **每条在判什么**：
 
-| 条 | 看什么 | 会决定什么 |
-| --- | --- | --- |
-| ① | 有 `armbianEnv.txt` 还是没有 | 没有 → setup-board.sh 的 overlay 步会跳过，得自己动 `extlinux.conf` |
-| ② | 内核版本；`model` 串**只是通用串 `Radxa ZERO 3`，不带 W/E 后缀**，别拿它认型号（见 §1） | 只作记录 |
-| ③ | `nmcli` 在不在、`wlan0` 是不是它管 | 在 → §6.5 网络迁移**整节跳过** |
-| ④ | `/dev/ttyS2` 在不在 | 在 → overlay 已经好了（比如你已在 `rsetup` 里加过 `rk3568-uart2-m0.dtbo`） |
-| ⑤ | systemd 版本 | 只作记录 |
-| ⑥ | `/proc/cmdline` 里有没有 `console=ttyS0 / ttyFIQ0 / ...` | **有 → 内核日志正在污染舵机总线，必须改** |
-| ⑦ | ttyS2 上有没有 getty | `active` → 必须 mask 掉（setup-board.sh 会做） |
+| 条 | 看什么                                                                                             | 会决定什么                                                                     |
+| -- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| ① | 有`armbianEnv.txt` 还是没有                                                                      | 没有 → setup-board.sh 的 overlay 步会跳过，得自己动`extlinux.conf`          |
+| ② | 内核版本；`model` 串**只是通用串 `Radxa ZERO 3`，不带 W/E 后缀**，别拿它认型号（见 §1） | 只作记录                                                                       |
+| ③ | `nmcli` 在不在、`wlan0` 是不是它管                                                             | 在 → §6.5 网络迁移**整节跳过**                                         |
+| ④ | `/dev/ttyS2` 在不在                                                                              | 在 → overlay 已经好了（比如你已在`rsetup` 里加过 `rk3568-uart2-m0.dtbo`） |
+| ⑤ | systemd 版本                                                                                       | 只作记录                                                                       |
+| ⑥ | `/proc/cmdline` 里有没有 `console=ttyS0 / ttyFIQ0 / ...`                                       | **有 → 内核日志正在污染舵机总线，必须改**                               |
+| ⑦ | ttyS2 上有没有 getty                                                                               | `active` → 必须 mask 掉（setup-board.sh 会做）                              |
 
 > ⚠️ **⑥ 的坑**：Radxa OS 出厂把调试控制台放在 UART2（`console=ttyFIQ0,1500000n8`）。你把它当舵机总线用之前，必须把 `console=` 改到屏幕（`tty1`）并**删掉 `earlycon`** —— 改的是 `/boot/extlinux/extlinux.conf` 里 `append` 那一行。**改完必须重启才生效。**
 
 #### 你这块板子的实测结果（2026-09-15，可作为对照）
 
-| 条 | 实际输出 | 意味着 |
-| --- | --- | --- |
-| ① | 有 `extlinux.conf` + `uEnv.txt`，**没有** `armbianEnv.txt` | 脚本 overlay 步会 warn 跳过 —— **这是预期行为，不是故障** |
-| ② | `6.1.84-10-rk2410-nocsf` / `Radxa ZERO 3` | Radxa 的 vendor 内核；型号串不带后缀 |
-| ③ | `/usr/bin/nmcli`；`wlan0:connected` | **§6.5 跳过** |
-| ④ | `/dev/ttyS1` + `/dev/ttyS2` 都在 | overlay 已就绪 ✅ |
-| ⑤ | `systemd 252` | 够用 |
-| ⑥⑦ | 取决于你有没有改过 `extlinux.conf` / mask 过 getty | 没改就必须补 |
+| 条   | 实际输出                                                              | 意味着                                                           |
+| ---- | --------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| ①   | 有`extlinux.conf` + `uEnv.txt`，**没有** `armbianEnv.txt` | 脚本 overlay 步会 warn 跳过 ——**这是预期行为，不是故障** |
+| ②   | `6.1.84-10-rk2410-nocsf` / `Radxa ZERO 3`                         | Radxa 的 vendor 内核；型号串不带后缀                             |
+| ③   | `/usr/bin/nmcli`；`wlan0:connected`                               | **§6.5 跳过**                                             |
+| ④   | `/dev/ttyS1` + `/dev/ttyS2` 都在                                  | overlay 已就绪 ✅                                                |
+| ⑤   | `systemd 252`                                                       | 够用                                                             |
+| ⑥⑦ | 取决于你有没有改过`extlinux.conf` / mask 过 getty                   | 没改就必须补                                                     |
 
 ### 6.2 【动手】获取脚本并放到板子上
 
@@ -532,12 +544,12 @@ scp scripts\install.sh deploy\dev-key\team.dev.pub radxa@<板子IP>:~/
 
 **这四个文件分别是干嘛的**：
 
-| 文件 | 用途 | 你这次用不用 |
-| --- | --- | --- |
-| `setup-board.sh` | §6.4 的板级 bring-up：mask getty、装 ONNX Runtime、打印体检报告 | ✅ **必须** |
-| `migrate-network.sh` | 把网络从 netplan 迁到 NetworkManager | ❌ 你已经是 NM，用不到（拷过去无害，脚本自己会退） |
-| `install.sh` | §7 装 microduck 守护进程（robotd 等） | ✅ 下一步就用 |
-| `team.dev.pub` | 让这块板子成为**"开发板"**：信任团队 dev 签名，之后能装分支构建 | ✅ 建议装 |
+| 文件                   | 用途                                                             | 你这次用不用                                       |
+| ---------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| `setup-board.sh`     | §6.4 的板级 bring-up：mask getty、装 ONNX Runtime、打印体检报告 | ✅**必须**                                   |
+| `migrate-network.sh` | 把网络从 netplan 迁到 NetworkManager                             | ❌ 你已经是 NM，用不到（拷过去无害，脚本自己会退） |
+| `install.sh`         | §7 装 microduck 守护进程（robotd 等）                           | ✅ 下一步就用                                      |
+| `team.dev.pub`       | 让这块板子成为**"开发板"**：信任团队 dev 签名，之后能装分支构建  | ✅ 建议装                                          |
 
 **完成标志**：`ls -l ~/setup-board.sh ~/migrate-network.sh ~/install.sh ~/team.dev.pub` 四个文件都在。
 
@@ -571,19 +583,19 @@ sudo sh ~/setup-board.sh
 
 **它按顺序做这些事**（最后一列是它在**你这块 Radxa OS 上**的实际结果）：
 
-| 步骤 | 做什么 | 为什么 | 在你这块板子上 |
-| --- | --- | --- | --- |
-| `check_environment` | 检查 root / aarch64 / `curl tar find install` 齐不齐 | 最早失败最省时间 | ✅ |
-| `persist_self` | 把自己复制到 `/usr/local/sbin/robot-setup-board` | 见上 | ✅ 成功 |
-| `check_network` | 只读：`nmcli` 在不在、`wlan0` 归谁管 | 提醒 `configd` 需要 NetworkManager | ✅ 报"已连接"，无动作 |
-| `configure_overlay` | 在 `armbianEnv.txt` 里设 `overlay_prefix=rk3568`、加 `overlays=uart2-m0 i2c4-imu` | 让设备树能加载，否则 `/dev/ttyS2`、`/dev/i2c-imu` 都不存在 | ⚠️ **warn 跳过**（找不到 `armbianEnv.txt`）。**你已用 `rsetup` 加过 `rk3568-uart2-m0.dtbo` / `rk3568-i2c4-m0.dtbo`，等效** |
-| `free_motor_port` | mask `serial-getty@ttyS2.service`；把内核 `console=` 从串口挪到屏幕 | 别让登录终端 / 内核日志吃掉舵机回复 | ✅ **mask 这半段会生效、而且有用**；`console=` 那半段跳过（要自己改 `extlinux.conf`，见 6.1 ⑥） |
-| `configure_audio` | 装 `alsa-utils/device-tree-compiler/dkms/gcc/make/i2c-tools`，再装 Armbian 的 vendor 内核包 | 音频 codec 的驱动在 vendor 内核里 | ⚠️ 前半段能装成；后半段 **Radxa OS 源里没有那些包 → warn `could not install the vendor kernel — audio will not work`**。**音频放弃，不影响走路** |
-| `configure_tof` | 写 `/dev/i2c-pihat` 的 udev 规则 | 深度传感器要固定名字 | ⚠️ 只写规则（无害），但 i2c3 总线可能没开 |
-| `configure_camera` | 找 `*/rockchip/overlay` 目录，装摄像头 overlay | 摄像头要开 CSI/I²S | ⚠️ Radxa OS 的 dtbo 在 `/boot/dtbo/`，路径对不上 → warn 跳过 |
-| `configure_imu` | 装 IMU 的 overlay | i2c4 上的 LSM6DSV16X | ⚠️ 同上 warn 跳过（**你的 i2c4 已由 rsetup overlay 开好**） |
-| `install_onnxruntime` | 从 GitHub 下 ONNX Runtime **1.28.0**（aarch64）装进 `/usr/local/lib` + `ldconfig` | `robotd` 靠它加载 `.onnx` 策略 | ✅ **唯一真正关键的一步**。⚠️ **下载失败脚本会直接 `die` 退出**，见下表 |
-| `report` | 打印 board status | 一眼看出还缺什么 | ✅ |
+| 步骤                    | 做什么                                                                                       | 为什么                                                        | 在你这块板子上                                                                                                                                                    |
+| ----------------------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `check_environment`   | 检查 root / aarch64 /`curl tar find install` 齐不齐                                        | 最早失败最省时间                                              | ✅                                                                                                                                                                |
+| `persist_self`        | 把自己复制到`/usr/local/sbin/robot-setup-board`                                            | 见上                                                          | ✅ 成功                                                                                                                                                           |
+| `check_network`       | 只读：`nmcli` 在不在、`wlan0` 归谁管                                                     | 提醒`configd` 需要 NetworkManager                           | ✅ 报"已连接"，无动作                                                                                                                                             |
+| `configure_overlay`   | 在`armbianEnv.txt` 里设 `overlay_prefix=rk3568`、加 `overlays=uart2-m0 i2c4-imu`       | 让设备树能加载，否则`/dev/ttyS2`、`/dev/i2c-imu` 都不存在 | ⚠️**warn 跳过**（找不到 `armbianEnv.txt`）。**你已用 `rsetup` 加过 `rk3568-uart2-m0.dtbo` / `rk3568-i2c4-m0.dtbo`，等效**                   |
+| `free_motor_port`     | mask`serial-getty@ttyS2.service`；把内核 `console=` 从串口挪到屏幕                       | 别让登录终端 / 内核日志吃掉舵机回复                           | ✅**mask 这半段会生效、而且有用**；`console=` 那半段跳过（要自己改 `extlinux.conf`，见 6.1 ⑥）                                                         |
+| `configure_audio`     | 装`alsa-utils/device-tree-compiler/dkms/gcc/make/i2c-tools`，再装 Armbian 的 vendor 内核包 | 音频 codec 的驱动在 vendor 内核里                             | ⚠️ 前半段能装成；后半段**Radxa OS 源里没有那些包 → warn `could not install the vendor kernel — audio will not work`**。**音频放弃，不影响走路** |
+| `configure_tof`       | 写`/dev/i2c-pihat` 的 udev 规则                                                            | 深度传感器要固定名字                                          | ⚠️ 只写规则（无害），但 i2c3 总线可能没开                                                                                                                       |
+| `configure_camera`    | 找`*/rockchip/overlay` 目录，装摄像头 overlay                                              | 摄像头要开 CSI/I²S                                           | ⚠️ Radxa OS 的 dtbo 在`/boot/dtbo/`，路径对不上 → warn 跳过                                                                                                  |
+| `configure_imu`       | 装 IMU 的 overlay                                                                            | i2c4 上的 LSM6DSV16X                                          | ⚠️ 同上 warn 跳过（**你的 i2c4 已由 rsetup overlay 开好**）                                                                                               |
+| `install_onnxruntime` | 从 GitHub 下 ONNX Runtime**1.28.0**（aarch64）装进 `/usr/local/lib` + `ldconfig`   | `robotd` 靠它加载 `.onnx` 策略                            | ✅**唯一真正关键的一步**。⚠️ **下载失败脚本会直接 `die` 退出**，见下表                                                                            |
+| `report`              | 打印 board status                                                                            | 一眼看出还缺什么                                              | ✅                                                                                                                                                                |
 
 **预期你会看到 4~6 条 warning**，全部是 Radxa OS 与 Armbian 的差异导致的**误报**，不用管。
 
@@ -596,14 +608,15 @@ sudo sh ~/setup-board.sh
 
 **卡住了怎么办**：
 
-| 现象 | 原因 | 修法 |
-| --- | --- | --- |
-| 卡在下载 ONNX Runtime / curl 报错、脚本退出 | 国内访问 GitHub releases 慢或被断 | 直接**重跑一次**（脚本幂等）；仍不行就手动装：在能上网的机器下 `onnxruntime-linux-aarch64-1.28.0.tgz`，`scp` 到板子解压，把 `lib/` 里的 `libonnxruntime.so*` 拷进 `/usr/local/lib`，再 `sudo ldconfig` |
-| `could not install the vendor kernel — audio will not work` | Radxa OS 没有 Armbian 的包 | **正常，忽略**（除非你要音频） |
-| `no rockchip overlay directory under /boot` | Radxa OS 的 dtbo 路径不同 | **正常，忽略**（你的 uart2/i2c4 已开好） |
-| 脚本说 `reboot required`，但你没改 Wi-Fi | — | **先看 §0.7**，否则重启即失联 |
+| 现象                                                           | 原因                              | 修法                                                                                                                                                                                                                     |
+| -------------------------------------------------------------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 卡在下载 ONNX Runtime / curl 报错、脚本退出                    | 国内访问 GitHub releases 慢或被断 | 直接**重跑一次**（脚本幂等）；仍不行就手动装：在能上网的机器下 `onnxruntime-linux-aarch64-1.28.0.tgz`，`scp` 到板子解压，把 `lib/` 里的 `libonnxruntime.so*` 拷进 `/usr/local/lib`，再 `sudo ldconfig` |
+| `could not install the vendor kernel — audio will not work` | Radxa OS 没有 Armbian 的包        | **正常，忽略**（除非你要音频）                                                                                                                                                                                     |
+| `no rockchip overlay directory under /boot`                  | Radxa OS 的 dtbo 路径不同         | **正常，忽略**（你的 uart2/i2c4 已开好）                                                                                                                                                                           |
+| 脚本说`reboot required`，但你没改 Wi-Fi                      | —                                | **先看 §0.7**，否则重启即失联                                                                                                                                                                                     |
 
 **完成标志**（就是 §6 开头那张表）：
+
 ```bash
 ls -l /dev/ttyS2 /dev/i2c-imu
 sudo fuser -v /dev/ttyS2          # 期望：无输出（没有任何进程占着）
@@ -621,6 +634,7 @@ ls /usr/local/lib/libonnxruntime.so*
 理由（§6.1 ③ 的实测）：`nmcli` 存在、`wlan0:connected` —— 这块 Radxa OS 出厂就是 NetworkManager，没什么可迁的。
 
 > 如果以后你换回 Armbian 镜像，则要跑（模式是"**重启前后各跑一次**"）：
+>
 > ```bash
 > sudo sh ~/migrate-network.sh
 > sudo reboot
@@ -638,25 +652,25 @@ ls /usr/local/lib/libonnxruntime.so*
 
 脚本 [setup-board.sh](file:///e:/optiDuck/joyandai/microduck/scripts/setup-board.sh) 开头几乎没有代码，全是注释在争论"为什么"。那些争论就是它的设计原则 —— **理解了这 6 条，整份脚本就没有黑箱了**：
 
-| # | 原则 | 具体做法 | 为什么必须这样 |
-| --- | --- | --- | --- |
-| 1 | **只管"板子"，不管"软件"** | 它和 `install.sh` 是**两个**脚本 | 见下面单独展开 |
-| 2 | **幂等**（重复跑安全） | 每一步都是"**先检查，再决定改不改**"，绝不直接写 | 它自己的工作就是"改配置 → 重启 → 再确认"，**必然要跑第二遍**；不幂等的话第二遍会毁掉第一遍的成果 |
-| 3 | **绝不自作主张重启** | 只设一个变量 `needs_reboot=1`，最后打印"该重启了"然后**自己结束** | 重启会瞬间切断 SSH。脚本**没有资格**替你决定让板子失联 —— 这个决定必须由拿着板子的人做 |
-| 4 | **先把自己存下来** | `persist_self`：复制自己到 `/usr/local/sbin/robot-setup-board` | `/tmp` **不跨重启**。一个"改启动配置 → 重启 → 再确认"的脚本，重启后把自己删掉，是"对你手里这块板子的恶劣玩笑" |
-| 5 | **非核心功能一律"软失败"** | 音频 / 摄像头 / ToF / 蓝牙全部"出错就 `warn` 然后继续"；只有电机总线是硬需求 | **能走路的板子 > 样样完美的板子。**没有音频的鸭子走得和好的一模一样，所以音频**不允许**中断 provisioning |
-| 6 | **只打印命令，不替你执行** | `fetch_cmd` 只 `printf` 一行 `curl` 命令给你看 | ① 脚本自己只从**公开**地址下一样东西（ONNX Runtime），不需要 token；② 打印的 token 写成 `$DUCK_TOKEN` **变量名**而不是值 —— 因为 **bring-up 日志会被贴进聊天/issue**，泄露的 token 得挨个板子轮换 |
+| # | 原则                             | 具体做法                                                                      | 为什么必须这样                                                                                                                                                                                                            |
+| - | -------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 | **只管"板子"，不管"软件"** | 它和`install.sh` 是**两个**脚本                                       | 见下面单独展开                                                                                                                                                                                                            |
+| 2 | **幂等**（重复跑安全）     | 每一步都是"**先检查，再决定改不改**"，绝不直接写                        | 它自己的工作就是"改配置 → 重启 → 再确认"，**必然要跑第二遍**；不幂等的话第二遍会毁掉第一遍的成果                                                                                                                  |
+| 3 | **绝不自作主张重启**       | 只设一个变量`needs_reboot=1`，最后打印"该重启了"然后**自己结束**      | 重启会瞬间切断 SSH。脚本**没有资格**替你决定让板子失联 —— 这个决定必须由拿着板子的人做                                                                                                                            |
+| 4 | **先把自己存下来**         | `persist_self`：复制自己到 `/usr/local/sbin/robot-setup-board`            | `/tmp` **不跨重启**。一个"改启动配置 → 重启 → 再确认"的脚本，重启后把自己删掉，是"对你手里这块板子的恶劣玩笑"                                                                                                   |
+| 5 | **非核心功能一律"软失败"** | 音频 / 摄像头 / ToF / 蓝牙全部"出错就`warn` 然后继续"；只有电机总线是硬需求 | **能走路的板子 > 样样完美的板子。**没有音频的鸭子走得和好的一模一样，所以音频**不允许**中断 provisioning                                                                                                      |
+| 6 | **只打印命令，不替你执行** | `fetch_cmd` 只 `printf` 一行 `curl` 命令给你看                          | ① 脚本自己只从**公开**地址下一样东西（ONNX Runtime），不需要 token；② 打印的 token 写成 `$DUCK_TOKEN` **变量名**而不是值 —— 因为 **bring-up 日志会被贴进聊天/issue**，泄露的 token 得挨个板子轮换 |
 
 **第 1 条展开看（这是整份架构最重要的一刀）**：
 
-| | `setup-board.sh` | `install.sh` |
-| --- | --- | --- |
-| 管什么 | 操作系统层 bring-up：设备树 overlay、ONNX Runtime | 装一个**签名**的守护进程 release |
-| 属于谁 | **板子** | **软件** |
-| 多久变一次 | 极少变 | **每次更新都装** |
-| 要重启吗 | 要（overlay 要重启才生效） | 不要 |
-| 需要 root | 是 | 是 |
-| 高风险操作 | 有（改启动配置） | 有（改网络栈是单独脚本） |
+|            | `setup-board.sh`                                | `install.sh`                         |
+| ---------- | ------------------------------------------------- | -------------------------------------- |
+| 管什么     | 操作系统层 bring-up：设备树 overlay、ONNX Runtime | 装一个**签名**的守护进程 release |
+| 属于谁     | **板子**                                    | **软件**                         |
+| 多久变一次 | 极少变                                            | **每次更新都装**                 |
+| 要重启吗   | 要（overlay 要重启才生效）                        | 不要                                   |
+| 需要 root  | 是                                                | 是                                     |
+| 高风险操作 | 有（改启动配置）                                  | 有（改网络栈是单独脚本）               |
 
 > **如果不拆开会怎样**：每次软件更新都要重新讨论一遍启动配置。overlay、内核 console 这些**和软件版本毫无关系**的东西，会被卷进"更新"里反复处理。**"频率不同、生命周期不同、风险不同"的东西，就该是两个脚本。**
 
@@ -731,11 +745,11 @@ overlays=uart2-m0 i2c4-imu     ← 要加载哪几个 overlay
 
 **它要修的三个坑（都在注释里写了）**：
 
-| 坑 | 现象 | 为什么"最难查" |
-| --- | --- | --- |
-| Armbian 默认写 `overlay_prefix=rk35xx`，但 dtbo 实际叫 `rk3568-*.dtbo` | **加载器一个都找不到** | 板子**照常启动**、不报错、`dmesg` 也不说，**只是 `/dev/ttyS2` 不存在** |
-| `armbian-config` 的 overlay 编辑器在这块板子上直接崩（`Invalid overlay_prefix rk35xx`） | 没法用官方工具改 | 只能直接改文件 —— **这就是为什么它是个脚本，而不是一份"操作清单"** |
-| 内核升级会重新指向 `/boot/{Image,dtb,uInitrd}` | 升级后电机突然全不见了 | 所以 `report` 会提醒你"该重启了、再跑一遍" |
+| 坑                                                                                          | 现象                         | 为什么"最难查"                                                                         |
+| ------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------- |
+| Armbian 默认写`overlay_prefix=rk35xx`，但 dtbo 实际叫 `rk3568-*.dtbo`                   | **加载器一个都找不到** | 板子**照常启动**、不报错、`dmesg` 也不说，**只是 `/dev/ttyS2` 不存在** |
+| `armbian-config` 的 overlay 编辑器在这块板子上直接崩（`Invalid overlay_prefix rk35xx`） | 没法用官方工具改             | 只能直接改文件 ——**这就是为什么它是个脚本，而不是一份"操作清单"**              |
+| 内核升级会重新指向`/boot/{Image,dtb,uInitrd}`                                             | 升级后电机突然全不见了       | 所以`report` 会提醒你"该重启了、再跑一遍"                                            |
 
 **代码上的讲究**：加 overlay 词用的是**追加**（`overlays=已有的 uart2-m0`），不是替换整行 —— 因为**镜像原本开了哪些，不是你该删的**。
 
@@ -747,10 +761,10 @@ overlays=uart2-m0 i2c4-imu     ← 要加载哪几个 overlay
 
 **为什么"迁移"被拆到 `migrate-network.sh` 而不写在这里**（注释给了两条理由，都不是"文件太大"）：
 
-| 理由 | 说明 |
-| --- | --- |
-| **生命周期不同** | 它只是因为"Armbian 出厂带 netplan"才存在。等哪天做了自带 NM 的镜像，这个脚本**整份删掉**；而 overlay 和 ONNX 是**永远**需要的 |
-| **风险不同** | 它是**唯一一个能让 headless 板子永久失联**的步骤。这种事不能塞在"你随便重跑都没关系"的 bring-up 里，必须**拿出来做一次明确决定** |
+| 理由                   | 说明                                                                                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **生命周期不同** | 它只是因为"Armbian 出厂带 netplan"才存在。等哪天做了自带 NM 的镜像，这个脚本**整份删掉**；而 overlay 和 ONNX 是**永远**需要的    |
+| **风险不同**     | 它是**唯一一个能让 headless 板子永久失联**的步骤。这种事不能塞在"你随便重跑都没关系"的 bring-up 里，必须**拿出来做一次明确决定** |
 
 **为什么还是要检查**：`configd` 是通过 **D-Bus 驱动 NetworkManager** 的。板子还停在 netplan 上时，每个网络调用的回答都是"没有这个设备"。**在 bring-up 阶段说清楚，比以后在别的地方撞上这个怪错误强。**
 
@@ -764,10 +778,10 @@ overlays=uart2-m0 i2c4-imu     ← 要加载哪几个 overlay
 
 **两个"占座的人"，要分别赶**：
 
-| 占座者 | 赶走方式 | 为什么不能用更轻的方式 |
-| --- | --- | --- |
-| `serial-getty@ttyS2` | **mask**（不是 disable） | `getty.target` 会把它**重新拉回来**。`disable` 只是不自动启动，`mask` 才是"彻底禁止启动" |
-| **内核自己的 console**（printk） | 把 `console=both`/`console=serial` 改成 `console=display` | 内核消息和舵机回复**走在同一根线上**。而且它**大部分时间是安静的** —— 所以表现成"没有规律的间歇性总线故障"，**这比一直坏更难查** |
+| 占座者                                 | 赶走方式                                                       | 为什么不能用更轻的方式                                                                                                                               |
+| -------------------------------------- | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `serial-getty@ttyS2`                 | **mask**（不是 disable）                                 | `getty.target` 会把它**重新拉回来**。`disable` 只是不自动启动，`mask` 才是"彻底禁止启动"                                                 |
+| **内核自己的 console**（printk） | 把`console=both`/`console=serial` 改成 `console=display` | 内核消息和舵机回复**走在同一根线上**。而且它**大部分时间是安静的** —— 所以表现成"没有规律的间歇性总线故障"，**这比一直坏更难查** |
 
 **一句话总结这段的哲学（脚本原话）**：**一根 UART 不可能既是 console 又是电机总线。选择电机总线，就是整个脚本存在的意义。**
 
@@ -783,11 +797,11 @@ overlays=uart2-m0 i2c4-imu     ← 要加载哪几个 overlay
 
 **最关键是下面这张实测表**（注释里的原始记录，2026-08-19 在一块板子上单变量测出来的）：
 
-| `Privacy` | 配对时暂停 `btd`？ | 结果 |
-| --- | --- | --- |
-| `off` | 否 | 加密变更后约 **800 微秒**配对就死，报 `Remote User Terminated (0x13)` |
-| `off` | **是** | **配对成功**，45/45 次采样都稳，能真实操作、能开 |
-| `device` | 是 | 能配上，但**反复掉线**：46 次 `PIN or Key Missing (0x06)` |
+| `Privacy` | 配对时暂停`btd`？ | 结果                                                                         |
+| ----------- | ------------------- | ---------------------------------------------------------------------------- |
+| `off`     | 否                  | 加密变更后约**800 微秒**配对就死，报 `Remote User Terminated (0x13)` |
+| `off`     | **是**        | **配对成功**，45/45 次采样都稳，能真实操作、能开                       |
+| `device`  | 是                  | 能配上，但**反复掉线**：46 次 `PIN or Key Missing (0x06)`            |
 
 **这张表推翻了之前的结论**，得到两条**互相独立**的因果：
 
@@ -796,10 +810,10 @@ overlays=uart2-m0 i2c4-imu     ← 要加载哪几个 overlay
 
 **所以两个开关是"修两种不同的病"，不是一个套餐**：
 
-| 开关 | 修什么 | 代价 / 何时用 |
-| --- | --- | --- |
-| `--pause-btd-on-pair` | 配对时暂停 `btd` | 几乎无代价，**先试这个** |
-| `--weird-ble` | 额外设 `Privacy = device` | **在不需要它的板子上有害**，所以不默认开。它**隐含**了上面那个开关 |
+| 开关                    | 修什么                     | 代价 / 何时用                                                                  |
+| ----------------------- | -------------------------- | ------------------------------------------------------------------------------ |
+| `--pause-btd-on-pair` | 配对时暂停`btd`          | 几乎无代价，**先试这个**                                                 |
+| `--weird-ble`         | 额外设`Privacy = device` | **在不需要它的板子上有害**，所以不默认开。它**隐含**了上面那个开关 |
 
 **还有一个工程细节值得学**：它在 `/var/lib/robot/weird-ble` 写了一个**标记文件**给 `robotctl` 读，而不是让 `robotctl` 自己去解析 `main.conf`。理由：**"有人明确做过的决定"不能和"某个其它途径来的 `Privacy` 值"混为一谈。**
 
@@ -811,13 +825,13 @@ overlays=uart2-m0 i2c4-imu     ← 要加载哪几个 overlay
 
 **为什么音频这么麻烦（五层缺一不可）**：
 
-| 层 | 做什么 | 为什么少一层就不行 |
-| --- | --- | --- |
-| 1 | 装 `alsa-utils` / `device-tree-compiler` / `dkms` / `gcc` / `make` / `i2c-tools` | 工具链。顺带：**`i2c-tools` 的 postinst 会创建 `i2c` 用户组** —— 后面的 codec 和 ToF 都在这个总线上，而且 `i2cdetect` 是设备不响时**第一个**要跑的东西 |
-| 2 | 装 **Armbian vendor 内核**（image + dtb + headers） | **codec 的 I²S 时钟树只存在于 vendor 分支**。还要 headers 给 DKMS 编译用 |
-| 3 | 从 `deploy/audio/` 拉 `.dts` 源文件，用 `dtc -@` 编译成 `.dtbo` 装进 overlay 目录，再把词加到 `overlays=` | 硬件 i2c3 总线（排针 3/5），以及**嫁接**到它上面的 codec + I²S 声卡 |
-| 4 | 用 **DKMS 编译 codec 驱动**（`aic3x`） | **vendor 内核也不编译 `SND_SOC_AIC3X`** —— 原厂板子根本没有 aic3104 声卡，必须 out-of-tree 自己编 |
-| 5 | 装一个开机服务 `aic3104-init.service` 设置混音器电平 | 开机时要把喇叭路径设好、麦克风路由好，才能"开口就出声" |
+| 层 | 做什么                                                                                                             | 为什么少一层就不行                                                                                                                                                         |
+| -- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | 装`alsa-utils` / `device-tree-compiler` / `dkms` / `gcc` / `make` / `i2c-tools`                        | 工具链。顺带：**`i2c-tools` 的 postinst 会创建 `i2c` 用户组** —— 后面的 codec 和 ToF 都在这个总线上，而且 `i2cdetect` 是设备不响时**第一个**要跑的东西 |
+| 2  | 装**Armbian vendor 内核**（image + dtb + headers）                                                           | **codec 的 I²S 时钟树只存在于 vendor 分支**。还要 headers 给 DKMS 编译用                                                                                            |
+| 3  | 从`deploy/audio/` 拉 `.dts` 源文件，用 `dtc -@` 编译成 `.dtbo` 装进 overlay 目录，再把词加到 `overlays=` | 硬件 i2c3 总线（排针 3/5），以及**嫁接**到它上面的 codec + I²S 声卡                                                                                                 |
+| 4  | 用**DKMS 编译 codec 驱动**（`aic3x`）                                                                      | **vendor 内核也不编译 `SND_SOC_AIC3X`** —— 原厂板子根本没有 aic3104 声卡，必须 out-of-tree 自己编                                                                |
+| 5  | 装一个开机服务`aic3104-init.service` 设置混音器电平                                                              | 开机时要把喇叭路径设好、麦克风路由好，才能"开口就出声"                                                                                                                     |
 
 **两个很"老练"的细节**：
 
@@ -891,19 +905,19 @@ Failed to load ONNX Runtime dylib: ... expected version >= '1.23.x', but got '1.
 
 **它打印 10 项，每一项背后都是一个真实事故**：
 
-| 打印项 | 判据 | 为什么要单独列 |
-| --- | --- | --- |
-| **motor bus** | `/dev/ttyS2` 在不在 | **分三种情况**：存在 / "已启用，等重启" / **缺失**。第三种会额外警告"没有任何 overlay 改动待生效，所以是别的地方坏了" |
-| **btd on pairing** | 标记文件在不在 | 和下一项配对看，才能判断板子处于三种配置中的哪一种 |
-| **bluetooth privacy** | `Privacy = device` 吗 | **每次都要说出后果** —— 因为它就是那个"看起来像成功"的故障 |
-| **gamepad** | `/dev/input/js*` 存在吗 | `gilrs` 打开的就是这个节点，**所以这是唯一说了算的判据** |
-| **motor bus owner** | `fuser /dev/ttyS2` | **"端口存在"和"端口能用"是两个问题，只有第二个重要**。有人占着 → 每个舵机都会看起来不存在 |
-| **kernel console** | `/proc/cmdline` + 启动配置文件 | **分三种状态**，见下 |
-| **ONNX Runtime** | 解析符号链接，**打印版本号** | 只打印"存在"是不够的：**不兼容的运行时和正确的运行时，在 `robotd` 试着加载策略之前完全无法区分** |
-| **failed units** | `systemctl list-units --state=failed` | 存在理由是个真实故事：`systemd-networkd-wait-online` 在这块板子上**每次开机都失败、持续了一周**，每次多花 20 秒、还把 `updaterd` 挡在 `network-online.target` 后面 —— **而没有任何东西报告它** |
-| **wifi** | `nmcli` + `wlan0` 状态 | 四态：没有 `nmcli` / 没有 `wlan0` / NM 但没接管 / 已连接 |
-| **networkd wait-online** | 是否 masked | 没 mask → "等着开机卡顿吧" |
-| **clock** | `NTPSynchronized` | 无 RTC 的板子读 1970 → TLS 证书校验失败 → **在安装进行到好几步之后，以"看不懂的握手错误"形式暴露出来** |
+| 打印项                         | 判据                                    | 为什么要单独列                                                                                                                                                                                                     |
+| ------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **motor bus**            | `/dev/ttyS2` 在不在                   | **分三种情况**：存在 / "已启用，等重启" / **缺失**。第三种会额外警告"没有任何 overlay 改动待生效，所以是别的地方坏了"                                                                                  |
+| **btd on pairing**       | 标记文件在不在                          | 和下一项配对看，才能判断板子处于三种配置中的哪一种                                                                                                                                                                 |
+| **bluetooth privacy**    | `Privacy = device` 吗                 | **每次都要说出后果** —— 因为它就是那个"看起来像成功"的故障                                                                                                                                                 |
+| **gamepad**              | `/dev/input/js*` 存在吗               | `gilrs` 打开的就是这个节点，**所以这是唯一说了算的判据**                                                                                                                                                   |
+| **motor bus owner**      | `fuser /dev/ttyS2`                    | **"端口存在"和"端口能用"是两个问题，只有第二个重要**。有人占着 → 每个舵机都会看起来不存在                                                                                                                   |
+| **kernel console**       | `/proc/cmdline` + 启动配置文件        | **分三种状态**，见下                                                                                                                                                                                         |
+| **ONNX Runtime**         | 解析符号链接，**打印版本号**      | 只打印"存在"是不够的：**不兼容的运行时和正确的运行时，在 `robotd` 试着加载策略之前完全无法区分**                                                                                                           |
+| **failed units**         | `systemctl list-units --state=failed` | 存在理由是个真实故事：`systemd-networkd-wait-online` 在这块板子上**每次开机都失败、持续了一周**，每次多花 20 秒、还把 `updaterd` 挡在 `network-online.target` 后面 —— **而没有任何东西报告它** |
+| **wifi**                 | `nmcli` + `wlan0` 状态              | 四态：没有`nmcli` / 没有 `wlan0` / NM 但没接管 / 已连接                                                                                                                                                        |
+| **networkd wait-online** | 是否 masked                             | 没 mask → "等着开机卡顿吧"                                                                                                                                                                                        |
+| **clock**                | `NTPSynchronized`                     | 无 RTC 的板子读 1970 → TLS 证书校验失败 →**在安装进行到好几步之后，以"看不懂的握手错误"形式暴露出来**                                                                                                      |
 
 **"kernel console" 那一项要单独讲 —— 它区分三种状态，因为这里有个时间差**：
 
@@ -911,11 +925,11 @@ Failed to load ONNX Runtime dylib: ... expected version >= '1.23.x', but got '1.
 
 所以如果只打印一句"还在串口上"，在**刚刚修好这一项的那一次运行**里，会被读成"**修了没生效**"，白白多跑一趟。脚本的处理是：
 
-| 情况 | 打印 |
-| --- | --- |
-| 已写 `console=display`，且本次有待重启的改动 | `${tty}，直到重启为止` —— **不警告**，已处理 |
-| 已写 `console=display`，但没有待重启的改动 | `${tty} — CONFLICT` + 警告"这条线之外有别的东西在赢"（比如 `extraargs=`、或 U-Boot 里烧死的 `bootargs`）—— **并且明确说"再改一遍 `console=` 也没用"** |
-| 没写 `console=display` | 警告"脚本**故意**没动它 —— 它只重写 `console=both` 和 `console=serial`" |
+| 情况                                          | 打印                                                                                                                                                                   |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 已写`console=display`，且本次有待重启的改动 | `${tty}，直到重启为止` —— **不警告**，已处理                                                                                                                 |
+| 已写`console=display`，但没有待重启的改动   | `${tty} — CONFLICT` + 警告"这条线之外有别的东西在赢"（比如 `extraargs=`、或 U-Boot 里烧死的 `bootargs`）—— **并且明确说"再改一遍 `console=` 也没用"** |
+| 没写`console=display`                       | 警告"脚本**故意**没动它 —— 它只重写 `console=both` 和 `console=serial`"                                                                                    |
 
 **最后的分支**：`needs_reboot=1` 就打印"该重启了 + 重启后怎么继续"（按 `persisted` 分两种命令）；否则打印"**板子就绪 —— 下一步装守护进程**" + `install.sh` 的获取命令（按有没有 token 分两种形式，**token 依然只打变量名**）。
 
@@ -925,12 +939,12 @@ Failed to load ONNX Runtime dylib: ... expected version >= '1.23.x', but got '1.
 
 > **板子正常启动、不报错、`dmesg` 也不说，只是设备不存在。**
 
-| 出问题的地方 | 静默的原因 |
-| --- | --- |
-| `overlay_prefix=rk35xx` 而文件叫 `rk3568-*` | 加载器找不到，什么都不说 |
-| 摄像头 dtbo 没有 `rk3568-` 前缀 | 同上 |
-| `overlays=` 里写了一个磁盘上不存在的名字 | 启动时跳过，什么都不说 |
-| 内核 console 偶尔往舵机总线写日志 | 大部分时间安静 → 表现成"没有规律的间歇性故障" |
+| 出问题的地方                                    | 静默的原因                                     |
+| ----------------------------------------------- | ---------------------------------------------- |
+| `overlay_prefix=rk35xx` 而文件叫 `rk3568-*` | 加载器找不到，什么都不说                       |
+| 摄像头 dtbo 没有`rk3568-` 前缀                | 同上                                           |
+| `overlays=` 里写了一个磁盘上不存在的名字      | 启动时跳过，什么都不说                         |
+| 内核 console 偶尔往舵机总线写日志               | 大部分时间安静 → 表现成"没有规律的间歇性故障" |
 
 **这就是为什么这活儿必须是"脚本"而不是"一份操作清单"** —— 清单没法替你检查"我刚才那一下到底生效了没有"。**设计任何 bring-up，都要专门为"静默失败"设计一个可观察的判据。**
 
@@ -942,23 +956,23 @@ Failed to load ONNX Runtime dylib: ... expected version >= '1.23.x', but got '1.
 
 **不要从"要装什么软件"开始，从"软件要打开哪些 `/dev/*` 开始"。** Microduck 的清单是：
 
-| 设备 | 节点 | 谁用 |
-| --- | --- | --- |
-| 舵机总线 | `/dev/ttyS2` | `robotd`（15 个舵机） |
-| 机身 IMU | `/dev/i2c-imu`（i2c4，0x6A） | `robotd` |
-| 音频 codec + 头部 ToF | `/dev/i2c-pihat`（i2c3，0x18 / 0x29） | `mediad` / `tofd` |
-| 摄像头 | `/dev/video*` | `mediad` |
-| 手柄 | `/dev/input/js*` | `padd` |
+| 设备                  | 节点                                    | 谁用                    |
+| --------------------- | --------------------------------------- | ----------------------- |
+| 舵机总线              | `/dev/ttyS2`                          | `robotd`（15 个舵机） |
+| 机身 IMU              | `/dev/i2c-imu`（i2c4，0x6A）          | `robotd`              |
+| 音频 codec + 头部 ToF | `/dev/i2c-pihat`（i2c3，0x18 / 0x29） | `mediad` / `tofd`   |
+| 摄像头                | `/dev/video*`                         | `mediad`              |
+| 手柄                  | `/dev/input/js*`                      | `padd`                |
 
 **这一步的产出 = 一张"节点清单"。** 后面每一步都是为了让这张清单变成现实。
 
 #### 第 2 步：每个节点，问三个问题
 
-| 问题 | 怎么查 | 为什么问 |
-| --- | --- | --- |
-| 它挂在哪个 **SoC 控制器**上？ | SoC 数据手册 + 板子原理图（引脚复用表） | 这决定了要开哪个 overlay |
-| 它的 **设备树地址**是什么？ | 内核源码/设备树里的 `fe5c0000.i2c` 这类地址 | 这是给它做**稳定别名**时唯一靠得住的锚点 |
-| 它的 **设备地址/ID** 是什么？ | I²C 是 7 位地址（如 `0x6A`）；串口设备是总线 ID | 后面 `i2cdetect` 要靠它判断"到没到" |
+| 问题                               | 怎么查                                            | 为什么问                                       |
+| ---------------------------------- | ------------------------------------------------- | ---------------------------------------------- |
+| 它挂在哪个**SoC 控制器**上？ | SoC 数据手册 + 板子原理图（引脚复用表）           | 这决定了要开哪个 overlay                       |
+| 它的**设备树地址**是什么？   | 内核源码/设备树里的`fe5c0000.i2c` 这类地址      | 这是给它做**稳定别名**时唯一靠得住的锚点 |
+| 它的**设备地址/ID** 是什么？ | I²C 是 7 位地址（如`0x6A`）；串口设备是总线 ID | 后面`i2cdetect` 要靠它判断"到没到"           |
 
 #### 第 3 步：确认设备树默认开没开
 
@@ -975,6 +989,7 @@ cat /proc/device-tree/model; echo        # 确认自己是什么板子
 3. 都不行 → 自己写 `.dts`，用 `dtc -@ -I dts -O dtb -o out.dtbo src.dts` **编译**（**`-@` 是必须的**，它保留符号信息，否则 overlay 没法"嫁接"到基树节点上）。
 
 **装 overlay 时最容易踩的三个"静默失败"**（§6.6.3）：
+
 - **前缀要对**（`overlay_prefix` 要和文件名前缀一致）；
 - **文件名要有前缀**（没有就复制一份加上）；
 - **`overlays=` 里的每个词，磁盘上都必须真的有对应文件**。
@@ -983,11 +998,11 @@ cat /proc/device-tree/model; echo        # 确认自己是什么板子
 
 **这是最容易被完全跳过、又最难查的一步。**
 
-| 占座者 | 怎么发现 | 怎么赶 |
-| --- | --- | --- |
-| 登录终端（`serial-getty@ttyX`） | `systemctl is-enabled serial-getty@ttyS2`；`fuser -v /dev/ttyS2` | **mask**（不是 disable），因为 `getty.target` 会把它拉回来 |
-| 内核 console | `cat /proc/cmdline` 里有没有 `console=ttyS*` | 改成屏幕（Armbian：`console=display`；Radxa OS：`extlinux.conf` 里 `console=tty1` 并删 `earlycon`）。**改完必须重启** |
-| 其它驱动 | `fuser -v /dev/<节点>` | 按驱动本身的方式关掉 |
+| 占座者                            | 怎么发现                                                             | 怎么赶                                                                                                                              |
+| --------------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| 登录终端（`serial-getty@ttyX`） | `systemctl is-enabled serial-getty@ttyS2`；`fuser -v /dev/ttyS2` | **mask**（不是 disable），因为 `getty.target` 会把它拉回来                                                                  |
+| 内核 console                      | `cat /proc/cmdline` 里有没有 `console=ttyS*`                     | 改成屏幕（Armbian：`console=display`；Radxa OS：`extlinux.conf` 里 `console=tty1` 并删 `earlycon`）。**改完必须重启** |
+| 其它驱动                          | `fuser -v /dev/<节点>`                                             | 按驱动本身的方式关掉                                                                                                                |
 
 > **判据永远用 `fuser`，不要靠"我觉得没人用"。** 脚本里那句话值得抄下来：**"端口存在"和"端口能用"是两个问题，只有第二个重要。**
 
@@ -1012,10 +1027,10 @@ sudo udevadm trigger --subsystem-match=i2c-dev
 
 问一句：**我的程序在运行时 `dlopen` 了什么？**
 
-| 类型 | 例子 | 特点 |
-| --- | --- | --- |
-| **编译期链接进去的** | Cargo 静态链接的 Rust 代码 | 跟 release 一起走，不用管 |
-| **运行时加载的** | ONNX Runtime（`.so`） | **必须单独装**，而且**要检查版本、不只是存在性** |
+| 类型                       | 例子                       | 特点                                                         |
+| -------------------------- | -------------------------- | ------------------------------------------------------------ |
+| **编译期链接进去的** | Cargo 静态链接的 Rust 代码 | 跟 release 一起走，不用管                                    |
+| **运行时加载的**     | ONNX Runtime（`.so`）    | **必须单独装**，而且**要检查版本、不只是存在性** |
 
 **为什么单独装**：它比软件变得慢，塞进每个 release 是浪费。**代价是"能装上、能启动，然后功能不可用"** —— 所以第 7 步的 report 必须把它列为一项。
 
@@ -1032,10 +1047,10 @@ sudo udevadm trigger --subsystem-match=i2c-dev
 
 #### 第 8 步：给每一步标"硬 / 软"，决定失败时要不要停
 
-| 等级 | 判据 | 处理 |
-| --- | --- | --- |
-| **硬**（`die`） | 不做这件事，机器人**完全不能动** | 立刻退出并说明 |
-| **软**（`warn`） | 不做这件事，机器人**照样能走**，只是少个功能 | 警告后继续 |
+| 等级                     | 判据                                               | 处理           |
+| ------------------------ | -------------------------------------------------- | -------------- |
+| **硬**（`die`）  | 不做这件事，机器人**完全不能动**             | 立刻退出并说明 |
+| **软**（`warn`） | 不做这件事，机器人**照样能走**，只是少个功能 | 警告后继续     |
 
 Microduck 的划分是：**只有电机总线是硬的**；音频、摄像头、ToF、蓝牙全部是软的。
 
@@ -1043,15 +1058,15 @@ Microduck 的划分是：**只有电机总线是硬的**；音频、摄像头、
 
 #### 附：反面清单（自己写 bring-up 时不要做的事）
 
-| 不要做 | 因为 |
-| --- | --- |
-| 直接写配置、不先检查 | 第二次跑会搞坏第一次的成果（不幂等） |
-| 在脚本里自己重启 | 会切断 SSH，你失去排查窗口 |
-| 把"改启动配置"和"装软件"揉成一个脚本 | 生命周期、频率、风险都不同 |
-| 把高风险操作（改网络栈）混进"随便重跑没关系"的流程 | 它需要一次明确的、单独的决策 |
-| 只判断"文件存在"就跳过 | 版本不兼容比不存在更难查（它会**启动成功然后 panic**） |
-| 在报错里写死文件路径 | 脚本一旦被复制到别处，建议就与现实不符 |
-| 把 token 的值打印出来 | bring-up 日志会被贴进聊天和 issue |
+| 不要做                                             | 因为                                                         |
+| -------------------------------------------------- | ------------------------------------------------------------ |
+| 直接写配置、不先检查                               | 第二次跑会搞坏第一次的成果（不幂等）                         |
+| 在脚本里自己重启                                   | 会切断 SSH，你失去排查窗口                                   |
+| 把"改启动配置"和"装软件"揉成一个脚本               | 生命周期、频率、风险都不同                                   |
+| 把高风险操作（改网络栈）混进"随便重跑没关系"的流程 | 它需要一次明确的、单独的决策                                 |
+| 只判断"文件存在"就跳过                             | 版本不兼容比不存在更难查（它会**启动成功然后 panic**） |
+| 在报错里写死文件路径                               | 脚本一旦被复制到别处，建议就与现实不符                       |
+| 把 token 的值打印出来                              | bring-up 日志会被贴进聊天和 issue                            |
 
 > **这一节的方法只针对"硬件 bring-up"。** 想拆**任何**脚本 / 工具（不止硬件，包括"别人让你照着敲"的任何东西），看 **§10.0 的七步法**。
 
@@ -1065,15 +1080,23 @@ Microduck 的划分是：**只有电机总线是硬的**；音频、摄像头、
 
 **这一节的核心特点（先理解，后面每一步都是它的推论）**：
 
-| 特点 | 含义 | 你会看到什么 |
-| --- | --- | --- |
-| **一切都要签名验证** | 每个 release 都用 minisign 签名，板子上只认 baked-in 的公钥 | 签名不对 → 直接拒绝安装，不是"警告一下继续" |
-| **引导靠"先下一个 updaterd"打破循环** | "更新需要更新器，而更新器本身要靠更新送过来"——解法是先单独下一个裸 `updaterd` 二进制，由它走**正常**安装引擎 | 安装日志里会看到 `fetching the bootstrap updaterd` |
-| **装完会验一次哈希闭环** | 那个裸二进制是**未经签名**下载的；装完后脚本比对它的 sha256 和签名release 里的 `bin/updaterd` | 日志里 `bootstrap binary verified against the signed release` 就是这一步 |
-| **绝不覆盖你的配置文件** | `/etc/robot/updater.toml`、`/etc/robot/robotd.toml` 装一次就不再动 | 重跑时看到 `keeping the existing ...` = 正常 |
-| **幂等** | 重复跑安全；但如果已经装过 release，它会**跳过引导** | 会打印 `a release is already live (...); skipping the bootstrap` |
+| 特点                                        | 含义                                                                                                                  | 你会看到什么                                                              |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| **一切都要签名验证**                  | 每个 release 都用 minisign 签名，板子上只认 baked-in 的公钥                                                           | 签名不对 → 直接拒绝安装，不是"警告一下继续"                              |
+| **引导靠"先下一个 updaterd"打破循环** | "更新需要更新器，而更新器本身要靠更新送过来"——解法是先单独下一个裸`updaterd` 二进制，由它走**正常**安装引擎 | 安装日志里会看到`fetching the bootstrap updaterd`                       |
+| **装完会验一次哈希闭环**              | 那个裸二进制是**未经签名**下载的；装完后脚本比对它的 sha256 和签名release 里的 `bin/updaterd`                 | 日志里`bootstrap binary verified against the signed release` 就是这一步 |
+| **绝不覆盖你的配置文件**              | `/etc/robot/updater.toml`、`/etc/robot/robotd.toml` 装一次就不再动                                                | 重跑时看到`keeping the existing ...` = 正常                             |
+| **幂等**                              | 重复跑安全；但如果已经装过 release，它会**跳过引导**                                                            | 会打印`a release is already live (...); skipping the bootstrap`         |
 
 **本节完成标志**：`sudo sh ~/install.sh` 跑到最后打印出 `installed daemon <版本号>` + 一串 `robotctl ...` 提示，且 `systemctl is-active robotd updaterd` 都是 `active`。
+
+> **⏱ 本板子（192.168.31.30 / 蒲公英 172.16.0.127）实测（2026-09-16）—— 先读这个，再往下走**：
+>
+> - **网络已通**：`raw.githubusercontent.com`、`api.github.com`、`objects.githubusercontent.com` 均可达（`github.com` 主站不通，但 install.sh 用不到它）。之前 §7 卡住的 "raw 超时" 是临时故障，**不需要本地化改造**，照原流程跑即可；
+> - **仓库用官方默认 `pollen-robotics/microduck`**：它有稳定 release `daemon-v0.13.0`，且带 `updaterd-bootstrap-aarch64` 引导资产。**不要设成 `joyandai/microduck`** —— 它没有 release（API 返回 404），设了会在第 4 步 `die`；
+> - **公开仓库 → 不设 `DUCK_TOKEN`**；
+> - **`~/team.dev.pub` 已就位**（minisign 公钥 `F7C430D0F54E35CB`），直接 `export DUCK_DEV_KEY=$HOME/team.dev.pub` 即可把板子变成"开发板"；
+> - **前置条件已满足**：aarch64、`/dev/ttyS2`、时间已同步（Asia/Shanghai + NTP yes）、robot 组已建（§6 完成过）。
 
 ### 7.0 【只读】先确认前置条件（省得跑到一半才炸）
 
@@ -1093,11 +1116,11 @@ ls -l /dev/ttyS2                           # 期望存在，且没被 getty 占�
 
 > **在干吗**：这个脚本本身是**通用**的（官方默认指向 `pollen-robotics/microduck`）。你得告诉它：装**哪个仓库**的 release、从**哪个分支**拉脚本和密钥。这三个变量各管一段，不要混：
 
-| 变量 | 管什么 | 默认值 | 你什么时候要设 |
-| --- | --- | --- | --- |
-| `DUCK_REPO` | **release 和密钥从哪个 GitHub 仓库来** | `pollen-robotics/microduck` | 用你的 fork / 私有仓库时必须设 |
-| `DUCK_REF` | **脚本和公钥**从哪个 ref 读（不是配置、不是二进制） | `main` | 一般 `main`；要复现某次就别改 |
-| `DUCK_TOKEN` | 私有仓库的读权限令牌；也用于下载 release 资产 | 空 | **仓库私有**时必设 |
+| 变量           | 管什么                                                    | 默认值                        | 你什么时候要设                 |
+| -------------- | --------------------------------------------------------- | ----------------------------- | ------------------------------ |
+| `DUCK_REPO`  | **release 和密钥从哪个 GitHub 仓库来**              | `pollen-robotics/microduck` | 用你的 fork / 私有仓库时必须设 |
+| `DUCK_REF`   | **脚本和公钥**从哪个 ref 读（不是配置、不是二进制） | `main`                      | 一般`main`；要复现某次就别改 |
+| `DUCK_TOKEN` | 私有仓库的读权限令牌；也用于下载 release 资产             | 空                            | **仓库私有**时必设       |
 
 > ⚠️ **`DUCK_REF` 故意不管配置文件**：脚本从 `main` 拿**公钥**（密钥集合只增不减，最新最安全），却从**正在装的那个 release 的 tag** 拿 `updater.toml`/`robotd.toml`（配置字段只有同版本的二进制才认识）。这不是笔误 —— 用 `main` 的配置喂给旧二进制会报 `unknown field 'allow_users'`，官方为此专门踩过一次。
 
@@ -1108,22 +1131,23 @@ ls -l /dev/ttyS2                           # 期望存在，且没被 getty 占�
 ### 7.2 【动手】设置环境变量（在板子上，SSH 会话里）
 
 ```bash
-# ① 仓库：换成你实际要装的仓库（官方默认 pollen-robotics/microduck）
+# ① 仓库：保持官方默认即可，不要改成 joyandai/microduck（它没有 release，会装失败）
 export DUCK_REPO=pollen-robotics/microduck
 
-# ② 脚本/公钥的 ref
+# ② 脚本/公钥的 ref（不动）
 export DUCK_REF=main
 
-# ③ 私有仓库才需要 token
-export DUCK_TOKEN=github_pat_替换成你的token
+# ③ 公开仓库：token 留空，不要填任何值
+export DUCK_TOKEN=
 
-# ④ 让这块板子成为"开发板"（信任 team.dev.pub，可装分支构建）
+# ④ 让这块板子成为"开发板"（~/team.dev.pub 已就位，直接指过去）
 export DUCK_DEV_KEY=$HOME/team.dev.pub
 ```
 
 **逐条在干吗**：
 
 - **`DUCK_TOKEN` 从哪来**：GitHub → Settings → Developer settings → **Personal access tokens**，勾 **Contents: Read**（fine-grained）或经典 token 的 `repo`。**只给读权限**，别用全权限 token。
+  - **⏱ 本板子**：`pollen-robotics/microduck` 是公开仓库，**`DUCK_TOKEN` 留空即可**，不用建 token。上面命令块里已经留空。
 - **`DUCK_DEV_KEY` 是可选但建议**：它做两件事，**缺一不可**（脚本里写得很明确）—— ① 把 `team.dev.pub` 装到 `/etc/robot/trusted_keys/team.dev.pub`；② 把 `/etc/robot/updater.toml` 里的 `allow_dev_keys` 改成 `true`。**只做一件 = 板子依然拒绝分支构建，报错还长得像"release 损坏"。**
   - ⚠️ 这也是个**安全开关**：它让这块板子**无条件信任团队任何人推的分支构建（未经审查）**。所以官方刻意**不**把这个 key 放进仓库、也不自动下载 —— 必须是"这一块板子"的人工决定。**别对要出厂的机器人这么做。**
   - 撤销方法（脚本自己也会打印）：
@@ -1152,24 +1176,26 @@ sudo -E sh ~/install.sh
 
 **它会依次做这 11 步**（括号里是脚本里的函数名，看日志时能对上）：
 
-| # | 步骤 | 在干吗 | 失败了会怎样 |
-| --- | --- | --- | --- |
-| 1 | `check_environment` | 必须是 root、必须是 aarch64、`curl/systemctl/sha256sum/install` 都要在、`REPO` 不能还是占位符 | `die` 退出（**最早失败，最省时间**） |
-| 2 | `check_board` | 看 `/dev/ttyS2` 在不在、有没有 `serial-getty@ttyS2` 占着 | 只 **warn**，继续装（裸板也值得装，好测更新系统） |
-| 3 | `wait_for_clock` | 等 NTP 同步（无 RTC，最久 2 分钟） | 超时只 warn，但后面 TLS 很可能失败 |
-| 4 | `resolve_bootstrap_asset` | 问 GitHub API「最新稳定 release 是哪个 tag、里面的 `updaterd-bootstrap-aarch64` 资产 id 是多少」 | `die`（没有稳定 release 就没法引导） |
-| 5 | `install_config` | 从 `main` 拉 3 个公钥；从 release tag 拉 `updater.toml`/`robotd.toml` —— **已存在则保留不覆盖** | 拉不到 `release-1.pub` → `die`（没它什么都验不了） |
-| 6 | `install_dev_key` | 装 `team.dev.pub` + 打开 `allow_dev_keys`（仅当你设了 `DUCK_DEV_KEY`） | 文件格式不对 → `die` |
-| 7 | `bootstrap_first_release` | 下裸 `updaterd` → 让它走正常引擎装第一个 release（**验签**）→ 比对 sha256 闭环 | `die`；**打印两个哈希**并让你当"下载被劫持"处理 |
-| 8 | `create_group` | 建 `robot` 组 + `btd`/`padd` 系统账号，**并把你（`radxa`）加进 `robot` 组** | 建不出 `robot` 组 → `die`（两个服务都声明 `Group=robot`） |
-| 9 | `install_units` | 从 release 里拷 systemd unit、装 journald 持久化 drop-in、把 `robotctl` 链到 `/usr/local/bin`、装 `robot-rescue`/`robot-boot-check`、`enable --now` 各服务 | 缺 `updaterd.service`/`robotd.service` → `die`；缺 `configd/btd/padd/mediad` 只 warn |
-| 10 | `install_token_dropin` | 有 token 时写 `/etc/systemd/system/updaterd.service.d/token.conf`（**权限 600**）并重启 updaterd | 没 token 只提示"updaterd 拿不到更新" |
-| 11 | `verify_install` + `report` | 检查必需文件、`is-active updaterd robotd`、跑 `robotctl version`/`health`，最后打印安装报告 | `updaterd`/`robotd` 起不来 → `die` |
+| #  | 步骤                            | 在干吗                                                                                                                                                              | 失败了会怎样                                                                                 |
+| -- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 1  | `check_environment`           | 必须是 root、必须是 aarch64、`curl/systemctl/sha256sum/install` 都要在、`REPO` 不能还是占位符                                                                   | `die` 退出（**最早失败，最省时间**）                                                 |
+| 2  | `check_board`                 | 看`/dev/ttyS2` 在不在、有没有 `serial-getty@ttyS2` 占着                                                                                                         | 只**warn**，继续装（裸板也值得装，好测更新系统）                                       |
+| 3  | `wait_for_clock`              | 等 NTP 同步（无 RTC，最久 2 分钟）                                                                                                                                  | 超时只 warn，但后面 TLS 很可能失败                                                           |
+| 4  | `resolve_bootstrap_asset`     | 问 GitHub API「最新稳定 release 是哪个 tag、里面的`updaterd-bootstrap-aarch64` 资产 id 是多少」                                                                   | `die`（没有稳定 release 就没法引导）                                                       |
+| 5  | `install_config`              | 从`main` 拉 3 个公钥；从 release tag 拉 `updater.toml`/`robotd.toml` —— **已存在则保留不覆盖**                                                        | 拉不到`release-1.pub` → `die`（没它什么都验不了）                                       |
+| 6  | `install_dev_key`             | 装`team.dev.pub` + 打开 `allow_dev_keys`（仅当你设了 `DUCK_DEV_KEY`）                                                                                         | 文件格式不对 →`die`                                                                       |
+| 7  | `bootstrap_first_release`     | 下裸`updaterd` → 让它走正常引擎装第一个 release（**验签**）→ 比对 sha256 闭环                                                                             | `die`；**打印两个哈希**并让你当"下载被劫持"处理                                      |
+| 8  | `create_group`                | 建`robot` 组 + `btd`/`padd` 系统账号，**并把你（`radxa`）加进 `robot` 组**                                                                          | 建不出`robot` 组 → `die`（两个服务都声明 `Group=robot`）                              |
+| 9  | `install_units`               | 从 release 里拷 systemd unit、装 journald 持久化 drop-in、把`robotctl` 链到 `/usr/local/bin`、装 `robot-rescue`/`robot-boot-check`、`enable --now` 各服务 | 缺`updaterd.service`/`robotd.service` → `die`；缺 `configd/btd/padd/mediad` 只 warn |
+| 10 | `install_token_dropin`        | 有 token 时写`/etc/systemd/system/updaterd.service.d/token.conf`（**权限 600**）并重启 updaterd                                                             | 没 token 只提示"updaterd 拿不到更新"                                                         |
+| 11 | `verify_install` + `report` | 检查必需文件、`is-active updaterd robotd`、跑 `robotctl version`/`health`，最后打印安装报告                                                                   | `updaterd`/`robotd` 起不来 → `die`                                                    |
 
 > **第 8 步的副作用很重要**：脚本把你加进 `robot` 组后**会明确告诉你**：**当前这个 shell 还没生效**（进程的附属组在 `exec` 时就固定了，root 也没法改别的进程的组）。所以它会让你跑一条：
+>
 > ```bash
 > newgrp robot
 > ```
+>
 > **不跑会怎样**：`robotctl health` 报 `cannot reach robotd at /run/robotd.sock: Permission denied` —— **看起来像守护进程崩了，其实只是组没生效**。重新登录（或新开一个 SSH 会话）也一样有效。
 
 **预期输出骨架**（对照着看，就知道跑到哪了）：
@@ -1193,25 +1219,28 @@ sudo -E sh ~/install.sh
 
 **卡住了怎么办**：
 
-| 现象 | 原因 | 修法 |
-| --- | --- | --- |
-| `error: run as root (pipe to \`sudo sh\`, not \`sh\`)` | 忘了 `sudo` | 加 `sudo -E` |
-| `this installer publishes aarch64 binaries only` | 架构不对（装错镜像 / 在 x86 上跑） | 确认 `uname -m` = `aarch64` |
-| `REPO is still the placeholder 'ORG/...'` | 没设 `DUCK_REPO` 而脚本里是占位符 | `export DUCK_REPO=你的仓库` |
-| `cannot read .../releases/latest` | 仓库没发布过**稳定** release（只有 prerelease） | 让上游 promote 一个；用私有仓库则确认 token |
-| 下载 404，但仓库明明存在 | **私有仓库没给 token**（GitHub 用 404 掩盖 401） | 设 `DUCK_TOKEN` 后重跑 |
-| `the latest release has no asset named updaterd-bootstrap-aarch64` | release 里没带引导资产 | 是上游打包问题，不是你的板子 |
-| 卡在 `waiting for the clock to sync` | 板子没网 / NTP 没通 | 先修 Wi-Fi（§5.1），再重跑 |
-| `the bootstrap binary does not match bin/updaterd` | 引导二进制与签名 release 不一致 | **按提示当成"下载被篡改"排查**，别重试掩盖 |
-| `robotctl` 报 `Permission denied (os error 13)` | `robot` 组还没生效 | 跑 `newgrp robot`，或重开 SSH 会话 |
-| 重跑脚本后版本号没变 | **已装 release 时脚本会跳过引导** | 这是设计：装完的板子要靠 `sudo robotctl update apply daemon` 升级 |
-| `btd did not start` / `padd did not start` / `mediad did not start` | 这三个是**允许失败**的（蓝牙要 73 秒才出现 `hci0`；`padd` 要手柄；`mediad` 要 GStreamer 栈） | 机器人照样能更新、能走路，只少了对应功能；查 `journalctl -u btd -b` |
-| `the release carries no scripts/robot-rescue` 之类 | 从**分支**装、而 release 是更早的稳定版 | 无害；下次更新会带上 |
+| 现象                                                                                     | 原因                                                                                                                                    | 修法                                                                                                                           |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `error: run as root (pipe to \`sudo sh\`, not \`sh\`)`                                 | 忘了`sudo`                                                                                                                            | 加`sudo -E`                                                                                                                  |
+| `this installer publishes aarch64 binaries only`                                       | 架构不对（装错镜像 / 在 x86 上跑）                                                                                                      | 确认`uname -m` = `aarch64`                                                                                                 |
+| `REPO is still the placeholder 'ORG/...'`                                              | 没设`DUCK_REPO` 而脚本里是占位符                                                                                                      | `export DUCK_REPO=你的仓库`                                                                                                  |
+| `cannot read .../releases/latest`                                                      | 仓库没发布过**稳定** release（只有 prerelease）                                                                                   | 让上游 promote 一个；用私有仓库则确认 token                                                                                    |
+| 下载 404，但仓库明明存在                                                                 | **私有仓库没给 token**（GitHub 用 404 掩盖 401）                                                                                  | 设`DUCK_TOKEN` 后重跑                                                                                                        |
+| `the latest release has no asset named updaterd-bootstrap-aarch64`                     | release 里没带引导资产                                                                                                                  | 是上游打包问题，不是你的板子                                                                                                   |
+| 卡在`waiting for the clock to sync`                                                    | 板子没网 / NTP 没通                                                                                                                     | 先修 Wi-Fi（§5.1），再重跑                                                                                                    |
+| `the bootstrap binary does not match bin/updaterd`                                     | 引导二进制与签名 release 不一致                                                                                                         | **按提示当成"下载被篡改"排查**，别重试掩盖                                                                               |
+| `robotctl` 报 `Permission denied (os error 13)`                                      | `robot` 组还没生效                                                                                                                    | 跑`newgrp robot`，或重开 SSH 会话                                                                                            |
+| 重跑脚本后版本号没变                                                                     | **已装 release 时脚本会跳过引导**                                                                                                 | 这是设计：装完的板子要靠`sudo robotctl update apply daemon` 升级                                                             |
+| `btd did not start` / `padd did not start` / `mediad did not start`                | 这三个是**允许失败**的（蓝牙要 73 秒才出现 `hci0`；`padd` 要手柄；`mediad` 要 GStreamer 栈）                                | 机器人照样能更新、能走路，只少了对应功能；查`journalctl -u btd -b`                                                           |
+| `mediad` 每十几秒重启一次、负载被顶高（`systemctl show mediad -p NRestarts` 一直涨） | **没接摄像头**：mediad 找不到 `/dev/media*` 就退出（status 1），systemd 自动拉起，每次启动都重扫 GStreamer 插件、烧满一个核几秒 | 先停掉：`sudo systemctl disable --now mediad`；等接上摄像头、配好 camera overlay 后再 `sudo systemctl enable --now mediad` |
+| `the release carries no scripts/robot-rescue` 之类                                     | 从**分支**装、而 release 是更早的稳定版                                                                                           | 无害；下次更新会带上                                                                                                           |
 
 > ⚠️ **重跑 `install.sh` 不会升级已装的机器人**。脚本只负责"从零引导一块裸板"；装过之后它会打印：
+>
 > ```
 > a release is already live (releases/0.x.y); skipping the bootstrap
 > ```
+>
 > 想更新走 §9.5。想让新版**强制重装**（比如已装的 `updaterd` 太旧、把新版回滚了），才用 `DUCK_FORCE_REINSTALL=1` —— 注意它**会先停掉所有守护进程**，且**这次安装没有健康门、不能自动回滚**。
 
 ### 7.4 【动手】装完必须重启一次（重要）
@@ -1224,7 +1253,89 @@ sudo reboot
 
 **为什么这一步和 §0.7 强绑定**：重启是**唯一的失联风险点**。重启前必须已经做过 §0.7 的 Wi-Fi 自动连修复（`psk-flags=0`），否则重启后板子不联网，SSH 再也进不来。
 
-### 7.5 一条命令完成上面全部（熟练后用）
+> **⏱ 本板子**：重启后确认三件事 —— ① SSH 能进（`192.168.31.30`，或蒲公英 `172.16.0.127`）；② `systemctl is-active updaterd robotd` 都是 `active`；③ 既有服务照常拉起：蒲公英客户端、`robot-status.service`（8070 状态页）不受影响。
+
+### 7.5 【动手】国内网络三项修复（装完必做，本板已验证）
+
+> **在干吗**：`install.sh` 主流程全部来自 GitHub（板子能通 `raw.githubusercontent.com`，没问题）。但它的 **hooks** 里有两个下载源在国内是死的：**huggingface.co**（行走策略、鸭鸭检测器）和 **Radxa bullseye pool 的部分 deb**（rkaiq）。加上 NPU 的判断逻辑和 Radxa OS 的布局对不上，安装日志会把"其实已经好了"的事报成失败。这一节把三件事逐个修好。**安装日志里看到下面任一报错，就回来对着修。**
+
+#### ① 行走策略 + 鸭鸭检测器：换 hf-mirror 镜像
+
+**现象**：安装日志里 `fetching alpha_walking.onnx` 卡 8 秒超时，或 `could not download ... huggingface.co`。
+
+**根因**：`seed-policies.sh` / `seed-detector.sh` 默认从 `huggingface.co` 下载；且策略脚本把 `--max-time 8` **硬编码**在脚本里（环境变量覆盖不了）。
+
+**修法**（照抄，在板子上执行）：
+
+```bash
+cd /tmp
+# 从官方仓库拉原始脚本（板子能通 raw.githubusercontent.com）
+curl -fsSL -o seed-policies.sh https://raw.githubusercontent.com/pollen-robotics/microduck/main/scripts/seed-policies.sh
+curl -fsSL -o seed-detector.sh https://raw.githubusercontent.com/pollen-robotics/microduck/main/scripts/seed-detector.sh
+# ① 去掉 CRLF 行尾（scp 拷过去会带，dash 会报 `set: Illegal option -`）
+sed -i 's|\r$||' seed-policies.sh seed-detector.sh
+# ② 下载源 huggingface.co → 国内镜像 hf-mirror.com
+sed -i 's|https://huggingface.co/|https://hf-mirror.com/|' seed-policies.sh seed-detector.sh
+# ③ 放宽超时（脚本里硬编码 8s / 20s，env 覆盖不了，只能改文件）
+sed -i 's/--max-time 8/--max-time 180/' seed-policies.sh
+sed -i 's/--max-time 20/--max-time 180/' seed-detector.sh
+sudo -E sh seed-policies.sh
+sudo -E sh seed-detector.sh
+```
+
+**验证**：下面两个软链都在，且 release 目录里文件大小完整（`duck_detect.rknn` + `duck_detect.onnx` + `alpha_walking.onnx`）：
+
+```bash
+ls -l /opt/robot/policies/current /opt/robot/detector/current
+```
+
+#### ② rkaiq 摄像头 3A 引擎：deb 冲突 + shim 缺失
+
+**现象**：安装日志里 `dpkg: error ... camera-engine-rkaiq ... conflict`，或 `ERROR: no /tmp/rkaiq-modinfo-shim.c beside this script`。
+
+**根因**：Radxa pool 的 `camera_engine_rkaiq_rk3568_arm64-fixed.deb` 和系统里已有的 `camera-engine-rkaiq-rk3568` 提供同一个虚拟包、互相冲突（dpkg 判定"已装"后脚本其实能继续跑）；而 `setup-rkaiq.sh` 编译 ioctl shim 时需要同目录的 `rkaiq-modinfo-shim.c`（release 里才带，单独拷脚本过去就缺）。
+
+**修法**：把 shim 源文件一起拷到 /tmp 再重跑：
+
+```bash
+cd /tmp
+curl -fsSL -o setup-rkaiq.sh https://raw.githubusercontent.com/pollen-robotics/microduck/main/scripts/setup-rkaiq.sh
+curl -fsSL -o rkaiq-modinfo-shim.c https://raw.githubusercontent.com/pollen-robotics/microduck/main/scripts/rkaiq-modinfo-shim.c
+sed -i 's|\r$||' setup-rkaiq.sh
+sudo -E sh setup-rkaiq.sh
+```
+
+**验证**：`systemctl is-enabled rkaiq_3A.service` 输出 `enabled`；`ls -l /usr/local/lib/rkaiq_modinfo_shim.so` 文件在。
+
+#### ③ NPU：6.1 内核其实内置了驱动，只需开设备树节点
+
+**现象**：安装日志里 `npu driver: not found` —— **这是误报**。`setup-npu.sh` 用 `/sys/kernel/debug/rknpu/version`、`/proc/rknpu/version` 判断驱动，而 Radxa OS 6.1 的 rknpu 驱动（v0.9.8）只写 debugfs、且需要 root 才能读；它默认按 Armbian 布局（`armbianEnv.txt`）操作，Radxa OS 是 extlinux 布局，所以"自动开节点"那步也会跳过。**runtime（`librknnrt.so`）其实已经装好了。**
+
+**事实**：Radxa OS bookworm 6.1 内核的 config 里 `CONFIG_ROCKCHIP_RKNPU=y`（**驱动内置**），唯一变量就是设备树节点开没开。
+
+**修法**（Radxa OS 用 `/boot/dtbo/` 的 `.disabled` 后缀管理 overlay）：
+
+```bash
+# ① 启用 NPU overlay（去掉 .disabled 后缀）
+sudo mv /boot/dtbo/rk3568-npu-enable.dtbo.disabled /boot/dtbo/rk3568-npu-enable.dtbo
+sudo u-boot-update
+# ② 重启生效
+sudo reboot
+```
+
+**重启后验证**：
+
+```bash
+cat /sys/kernel/debug/rknpu/version   # → RKNPU driver: v0.9.8
+dmesg | grep -i rknpu                 # → [drm] Initialized rknpu 0.9.8 for fde40000.npu
+ls -l /dev/dri/                       # → renderD128 就是 NPU（by-path 里 platform-fde40000.npu-render）
+```
+
+> ⚠️ **新版 rknpu 是 DRM 驱动：NPU 设备在 `/dev/dri/renderD128`，不再有 `/dev/rknpu0`**。`librknnrt`（v2.3.2，`setup-npu.sh` 已装）两种接口都认。实测：用 librknnrt 加载 `/opt/robot/detector/releases/seed-duck-v1/duck_detect.rknn`，`rknn_init` 返回 0，推理通路 OK。
+
+> 🚫 **千万别做的事：不要切 5.10 vendor 内核**。5.10 内核**没有本板 AIC8800 Wi-Fi 驱动**（切了直接断网失联、SSH 进不来），而 6.1 已经有 NPU 驱动，切换没有任何收益。
+
+### 7.6 一条命令完成上面全部（熟练后用）
 
 > **在干吗**：`provision-board.sh` 是**在你 Windows 主机上**跑的编排脚本：它把 `setup-board.sh` + `install.sh`（还有 GStreamer、rkaiq 等可选栈）打包送到板子、远程执行、再给机器人起个名字。**和手工的唯一区别是"谁在敲命令"**，走的流程完全一样。
 
@@ -1234,12 +1345,12 @@ $env:DUCK_TOKEN="github_pat_替换成你的token"
 ./scripts/provision-board.sh --pause-btd-on-pair --name MY_DUCK radxa@<板子IP>
 ```
 
-| 参数 | 干吗 | 你什么时候要加 |
-| --- | --- | --- |
-| `--pause-btd-on-pair` | 配对时暂停 `btd`，让手柄能正常 bond | **手柄配不上时**加（先试这个，比 `--weird-ble` 保守） |
-| `--name MY_DUCK` | 给机器人起名（蓝牙广播名、`duckctl` 用它找板子） | 想要个好记的名字就加 |
-| `--weird-ble` | 更激进的蓝牙兼容处理（改 `Privacy=device` 等） | **别乱开**，先试 `--pause-btd-on-pair` |
-| `--no-gstreamer` / `--no-rkaiq` | 跳过摄像头/ISP 栈 | 没摄像头、想省时间 |
+| 参数                                | 干吗                                               | 你什么时候要加                                                |
+| ----------------------------------- | -------------------------------------------------- | ------------------------------------------------------------- |
+| `--pause-btd-on-pair`             | 配对时暂停`btd`，让手柄能正常 bond               | **手柄配不上时**加（先试这个，比 `--weird-ble` 保守） |
+| `--name MY_DUCK`                  | 给机器人起名（蓝牙广播名、`duckctl` 用它找板子） | 想要个好记的名字就加                                          |
+| `--weird-ble`                     | 更激进的蓝牙兼容处理（改`Privacy=device` 等）    | **别乱开**，先试 `--pause-btd-on-pair`                |
+| `--no-gstreamer` / `--no-rkaiq` | 跳过摄像头/ISP 栈                                  | 没摄像头、想省时间                                            |
 
 **第一次建议还是照 §7.1~7.4 手工走一遍** —— 出问题时你能看到每一步的输出，知道断在哪。摸熟了再用这条。
 
@@ -1257,6 +1368,8 @@ $env:DUCK_TOKEN="github_pat_替换成你的token"
 robotctl version
 ```
 
+![1789552785113](image/Radxa_ZERO_3W_零基础部署调试教程/1789552785113.png)
+
 **在干吗**：同时打印**正在运行**的版本和**磁盘上已安装**的版本。
 
 **为什么第一件事永远是看版本**：后面所有排障都建立在"我知道跑的是哪份代码"之上。版本对不上（比如你以为装了新版、其实还跑着回滚后的旧版）会让你在完全错误的方向上找半天。
@@ -1269,7 +1382,7 @@ robotctl version
 robotctl health
 ```
 
-**在干吗**：一份软硬件体检 —— 电机总线、IMU、策略加载、时钟、控制回路实际频率、失败的服务单元等。
+**![1789552877696](image/Radxa_ZERO_3W_零基础部署调试教程/1789552877696.png)在干吗**：一份软硬件体检 —— 电机总线、IMU、策略加载、时钟、控制回路实际频率、失败的服务单元等。
 
 > ⚠️ **裸板报 `unhealthy` 是诚实的正确答案，不是安装失败。**
 > 你现在的板子**还没接舵机**（或者舵机没上电）。`robotd` 打不开电机总线时会：记一条日志 → 继续提供 socket → 上报 `unhealthy`。脚本的 `verify_install` 对这一步**故意不判失败**（裸板是测更新系统的合法状态）。
@@ -1284,7 +1397,7 @@ ls -l /etc/robot/trusted_keys/team.dev.pub          # 期望：文件存在
 grep '^allow_dev_keys' /etc/robot/updater.toml      # 期望：allow_dev_keys        = true
 ```
 
-**在干吗**：核对 §7.2 说的那"两半"是否都在位。
+**![1789552986955](image/Radxa_ZERO_3W_零基础部署调试教程/1789552986955.png)在干吗**：核对 §7.2 说的那"两半"是否都在位。
 
 **为什么要两半都查**：只有 key 没有 `allow_dev_keys = true`（或反过来），板子**依然拒绝分支构建**，而报错长得像"release 签名损坏"，会让你去查错方向。
 
@@ -1378,12 +1491,12 @@ dmesg | grep -iE 'ttyS|serial'                  # 内核启动时串口/设备�
 
 **关键判据**：
 
-| 输出 | 意味着 |
-| --- | --- |
-| `/dev/ttyS2` 不存在 | overlay 没生效 → 回 §6 |
-| `fuser` 显示 `agetty` 占着 | 登录终端在吃舵机回复 → mask `serial-getty@ttyS2` |
-| `i2cdetect -y 4` 看不到 `0x6A` | IMU 总线/地址不对 → 查 §6 的 i2c4 overlay |
-| `i2cdetect -y -r 3` 看不到 `0x18`/`0x29` | 音频/ToF 总线没开（**不影响走路**） |
+| 输出                                           | 意味着                                             |
+| ---------------------------------------------- | -------------------------------------------------- |
+| `/dev/ttyS2` 不存在                          | overlay 没生效 → 回 §6                           |
+| `fuser` 显示 `agetty` 占着                 | 登录终端在吃舵机回复 → mask`serial-getty@ttyS2` |
+| `i2cdetect -y 4` 看不到 `0x6A`             | IMU 总线/地址不对 → 查 §6 的 i2c4 overlay        |
+| `i2cdetect -y -r 3` 看不到 `0x18`/`0x29` | 音频/ToF 总线没开（**不影响走路**）          |
 
 ### 9.4 板级脚本自带体检
 
@@ -1443,15 +1556,15 @@ sudo robot-rescue          # 把 release 退回"golden"（出厂那个已知好�
 
 > 这一套跟硬件无关、跟 microduck 也无关。任何脚本、任何 CLI 工具、任何"别人让你照着敲"的东西，都这么拆。
 
-| 步 | 做什么 | 为什么是这一步 |
-| --- | --- | --- |
-| **1** | **先读文件最上面那段注释，不要先读代码** | 写得好的脚本，文件头就是它的设计文档：为什么存在、故意不做什么、谁调用它。代码回答"**怎么做的**"，注释回答"**为什么这么做**" —— 你缺的是后者 |
-| **2** | **找入口**（`main` / 最后几行 / `case` 分支），**把调用顺序抄下来** | **顺序本身就是信息**：为什么 X 必须在 Y 前面？这类排序约束通常就是整份脚本真正的知识点 |
-| **3** | **每一步问四问**：在干吗 / 为什么必须 / 完成的标志 / 失败了怎么办 | 就是本教程每一节的格式。**四问答不全的地方，就是你还没懂的地方** |
-| **4** | **专门找"静默失败"**（§6.6.3） | 最贵的一类 bug：**不报错、但没生效**。任何"改了配置"的动作，都要配一个"读回来验证"的动作 |
-| **5** | **找它"故意不做"的事** | 成熟脚本里，"不做"和"做"一样是设计。**故意不重启、故意不覆盖配置、故意不装某个组件** —— 这些恰恰是最容易被你"顺手改一下"破坏掉的地方 |
-| **6** | **找"生命周期 / 自我退休"的声明** | 它是**一次性的**还是**每次更新都跑**？它会不会**把自己卸载掉**？搞错了，你要么在错误的时间期待它，要么让两套机制互相打架 |
-| **7** | **给每一步标"硬 / 软"**（§6.7 第 8 步） | 失败时是"必须停"还是"警告继续"，决定了你排障时的优先级 |
+| 步          | 做什么                                                                              | 为什么是这一步                                                                                                                                             |
+| ----------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **1** | **先读文件最上面那段注释，不要先读代码**                                      | 写得好的脚本，文件头就是它的设计文档：为什么存在、故意不做什么、谁调用它。代码回答"**怎么做的**"，注释回答"**为什么这么做**" —— 你缺的是后者 |
+| **2** | **找入口**（`main` / 最后几行 / `case` 分支），**把调用顺序抄下来** | **顺序本身就是信息**：为什么 X 必须在 Y 前面？这类排序约束通常就是整份脚本真正的知识点                                                               |
+| **3** | **每一步问四问**：在干吗 / 为什么必须 / 完成的标志 / 失败了怎么办             | 就是本教程每一节的格式。**四问答不全的地方，就是你还没懂的地方**                                                                                     |
+| **4** | **专门找"静默失败"**（§6.6.3）                                               | 最贵的一类 bug：**不报错、但没生效**。任何"改了配置"的动作，都要配一个"读回来验证"的动作                                                             |
+| **5** | **找它"故意不做"的事**                                                        | 成熟脚本里，"不做"和"做"一样是设计。**故意不重启、故意不覆盖配置、故意不装某个组件** —— 这些恰恰是最容易被你"顺手改一下"破坏掉的地方               |
+| **6** | **找"生命周期 / 自我退休"的声明**                                             | 它是**一次性的**还是**每次更新都跑**？它会不会**把自己卸载掉**？搞错了，你要么在错误的时间期待它，要么让两套机制互相打架                 |
+| **7** | **给每一步标"硬 / 软"**（§6.7 第 8 步）                                      | 失败时是"必须停"还是"警告继续"，决定了你排障时的优先级                                                                                                     |
 
 **这七步的产出是一张表**：
 
@@ -1463,28 +1576,28 @@ sudo robot-rescue          # 把 release 退回"golden"（出厂那个已知好�
 
 **反面清单（拆箱时不要做的事）**：
 
-| 不要做 | 因为 |
-| --- | --- |
-| 一上来就读代码细节 | 你会被一堆 `sed` 表达式淹没，却仍然不知道这个脚本为什么要存在 |
-| 只看"成功路径" | 脚本一半的价值在失败处理上 |
-| 看到 `--force` / `--bootstrap` 就直接用 | 逃生舱口的名字翻译过来就是"**我知道我在绕过什么**" |
-| 看到"故意不做"的地方就顺手补上 | 那通常是踩过坑之后**特意**留下的空位 |
+| 不要做                                     | 因为                                                           |
+| ------------------------------------------ | -------------------------------------------------------------- |
+| 一上来就读代码细节                         | 你会被一堆`sed` 表达式淹没，却仍然不知道这个脚本为什么要存在 |
+| 只看"成功路径"                             | 脚本一半的价值在失败处理上                                     |
+| 看到`--force` / `--bootstrap` 就直接用 | 逃生舱口的名字翻译过来就是"**我知道我在绕过什么**"       |
+| 看到"故意不做"的地方就顺手补上             | 那通常是踩过坑之后**特意**留下的空位                     |
 
 ---
 
 ### 10.1 黑箱清单：这份教程里还有哪些没拆的盒子
 
-| # | 黑箱 | 用在哪一节 | 黑在哪 | 拆解在 |
-| --- | --- | --- | --- | --- |
-| 1 | `migrate-network.sh` | §6.5 | 为什么网络要从 netplan 搬到 NetworkManager？"90 秒兜底"到底是什么 | §10.2 |
-| 2 | `install.sh` 的信任链 | §7.3 | "先下一个没签名的二进制"凭什么不是后门 | §10.3 |
-| 3 | `robotctl` 的权限模型 | §8 / §9.5 | 为什么有的命令要 `sudo`、有的不要 | §10.4 |
-| 4 | 更新器本体（`updater.toml`） | §7.5 / §9.5 | "装坏了会自己滚回去"具体靠什么、在什么条件下**不**回滚 | §10.5 |
-| 5 | `robot-boot-check` + `robot-rescue` | §9.6 | "永不变砖"到底怎么保证的 | §10.6 |
-| 6 | `provision-board.sh` / `provision.sh` | §7.5 | 一条命令背后的三层协作 + 为什么它总要重启一次 | §10.7 |
-| 7 | `dev-push.sh` | §12 | 一次推送在板子上**真正**发生了什么 | §10.8 |
-| 8 | `/etc/robot/*.toml` | §7 / §12 | 哪个该改、哪个改了会被永久冻住 | §10.9 |
-| 9 | 教程里没出现的那些脚本 | —— | 它们是什么角色，要不要管 | §10.10 |
+| # | 黑箱                                      | 用在哪一节    | 黑在哪                                                            | 拆解在  |
+| - | ----------------------------------------- | ------------- | ----------------------------------------------------------------- | ------- |
+| 1 | `migrate-network.sh`                    | §6.5         | 为什么网络要从 netplan 搬到 NetworkManager？"90 秒兜底"到底是什么 | §10.2  |
+| 2 | `install.sh` 的信任链                   | §7.3         | "先下一个没签名的二进制"凭什么不是后门                            | §10.3  |
+| 3 | `robotctl` 的权限模型                   | §8 / §9.5   | 为什么有的命令要`sudo`、有的不要                                | §10.4  |
+| 4 | 更新器本体（`updater.toml`）            | §7.5 / §9.5 | "装坏了会自己滚回去"具体靠什么、在什么条件下**不**回滚      | §10.5  |
+| 5 | `robot-boot-check` + `robot-rescue`   | §9.6         | "永不变砖"到底怎么保证的                                          | §10.6  |
+| 6 | `provision-board.sh` / `provision.sh` | §7.5         | 一条命令背后的三层协作 + 为什么它总要重启一次                     | §10.7  |
+| 7 | `dev-push.sh`                           | §12          | 一次推送在板子上**真正**发生了什么                          | §10.8  |
+| 8 | `/etc/robot/*.toml`                     | §7 / §12    | 哪个该改、哪个改了会被永久冻住                                    | §10.9  |
+| 9 | 教程里没出现的那些脚本                    | ——          | 它们是什么角色，要不要管                                          | §10.10 |
 
 ---
 
@@ -1494,10 +1607,10 @@ sudo robot-rescue          # 把 release 退回"golden"（出厂那个已知好�
 
 **为什么不能揉进 `setup-board.sh` 一起跑**（这是它单独存在的全部理由）：
 
-| 理由 | 说明 |
-| --- | --- |
+| 理由                   | 说明                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | **生命周期不同** | 板级设备配置（overlay、舵机总线、音频）**一次配好、长期不变**；网络迁移**只该发生一次**，之后这条路径就该消失 |
-| **风险等级不同** | 设备配错了 = 某个功能没有；**网络配错了 = 你再也 SSH 不上去**。高风险操作必须是一次**显式的、单独的**决策 |
+| **风险等级不同** | 设备配错了 = 某个功能没有；**网络配错了 = 你再也 SSH 不上去**。高风险操作必须是一次**显式的、单独的**决策     |
 
 **为什么必须是 NetworkManager，而不是继续用 netplan**（这段推理值得记住）：
 
@@ -1529,20 +1642,20 @@ apply 之后，最多等 90 秒，等 wlan0 拿到 IPv4 地址
 
 **解法（四步信任链）**：
 
-| 步 | 做什么 | 为什么这样做不开后门 |
-| --- | --- | --- |
-| 1 | 从 `raw.githubusercontent` 取**两样东西**：一份配置 + 一组公钥 | 只有这两样是**必须**在"验证能力存在之前"拿到的 —— 它们本身就是**用来开始验证的**（公钥是信任锚点，不再是"要相信的内容"） |
-| 2 | 单独下一个**裸 `updaterd` 二进制** | 它是**未经签名**的。这是整条链上**唯一**的裸下载 |
-| 3 | 让这个裸 `updaterd` 走**正常**安装引擎去装签名 release | 关键：**引导二进制只负责"启动引擎"，安装过程本身仍然要验签** |
-| 4 | **装完做一次 sha256 闭环比对**：裸二进制的哈希 == 签名 release 里 `bin/updaterd` 的哈希 | 用第 3 步的结果**反过来证明**第 2 步那个裸下载没被调包。**闭环一合上，裸下载就被"追认"了** |
+| 步 | 做什么                                                                                          | 为什么这样做不开后门                                                                                                                   |
+| -- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 1  | 从`raw.githubusercontent` 取**两样东西**：一份配置 + 一组公钥                           | 只有这两样是**必须**在"验证能力存在之前"拿到的 —— 它们本身就是**用来开始验证的**（公钥是信任锚点，不再是"要相信的内容"） |
+| 2  | 单独下一个**裸 `updaterd` 二进制**                                                      | 它是**未经签名**的。这是整条链上**唯一**的裸下载                                                                           |
+| 3  | 让这个裸`updaterd` 走**正常**安装引擎去装签名 release                                   | 关键：**引导二进制只负责"启动引擎"，安装过程本身仍然要验签**                                                                     |
+| 4  | **装完做一次 sha256 闭环比对**：裸二进制的哈希 == 签名 release 里 `bin/updaterd` 的哈希 | 用第 3 步的结果**反过来证明**第 2 步那个裸下载没被调包。**闭环一合上，裸下载就被"追认"了**                                 |
 
 **几个你会在日志里看到、但不知道什么意思的短语**：
 
-| 日志里的字样 | 意思 |
-| --- | --- |
-| `fetching the bootstrap updaterd` | 第 2 步：正在下那个裸二进制 |
-| `bootstrap binary verified against the signed release` | 第 4 步：哈希闭环**合上了**，整条链成立 |
-| `bootstrap binary does not match` | 闭环**没合上** → **按"下载被篡改"处理，不要重试掩盖** |
+| 日志里的字样                                                | 意思                                                                                      |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `fetching the bootstrap updaterd`                         | 第 2 步：正在下那个裸二进制                                                               |
+| `bootstrap binary verified against the signed release`    | 第 4 步：哈希闭环**合上了**，整条链成立                                             |
+| `bootstrap binary does not match`                         | 闭环**没合上** → **按"下载被篡改"处理，不要重试掩盖**                        |
 | `a release is already live (...); skipping the bootstrap` | 板子上已经有 release 了 → 跳过引导。**这也是"重跑 `install.sh` 不会升级"的原因** |
 
 **还有一条设计声明值得单独记**（文件头原话）：**"这个脚本从不解析 manifest"**。
@@ -1559,12 +1672,12 @@ apply 之后，最多等 90 秒，等 wlan0 拿到 IPv4 地址
 
 **全部行为都由这一行推出来**：
 
-| 现象 | 原因 |
-| --- | --- |
-| 你得在 `robot` 组里，才能跑 `robotctl` | `0660` + 组 = **"能不能连上"**这一层 |
-| **只读命令永远不需要额外授权**（`status` / `log` / `check` / `listInstalled` / `subscribe`） | 设计原话：**"能连上 socket 已经要求了组权限了；而支持人员必须能检查一台他无权改动的机器人。"** |
-| **改动命令**（`update apply` / `rollback` / `select` / `pin`）要 root，或列在 `allow_users` 里 | 这是**第二层**授权，和"能不能连上"是两件事 |
-| 明明进了组，还是报 `Permission denied (os error 13)` | 组没在**当前 shell** 生效（§8.4） |
+| 现象                                                                                                           | 原因                                                                                                 |
+| -------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 你得在`robot` 组里，才能跑 `robotctl`                                                                      | `0660` + 组 = **"能不能连上"**这一层                                                               |
+| **只读命令永远不需要额外授权**（`status` / `log` / `check` / `listInstalled` / `subscribe`）   | 设计原话：**"能连上 socket 已经要求了组权限了；而支持人员必须能检查一台他无权改动的机器人。"** |
+| **改动命令**（`update apply` / `rollback` / `select` / `pin`）要 root，或列在 `allow_users` 里 | 这是**第二层**授权，和"能不能连上"是两件事                                                     |
+| 明明进了组，还是报`Permission denied (os error 13)`                                                          | 组没在**当前 shell** 生效（§8.4）                                                             |
 
 **这里有一条"永远不要改"的红线**（`updater.toml` 里有注释，还有测试盯着）：
 
@@ -1598,16 +1711,17 @@ apply 之后，最多等 90 秒，等 wlan0 拿到 IPv4 地址
 
 **原则二**：健康门只回滚 **unhealthy**，不回滚 **degraded**。
 
-| 判定 | 例子 | 更新器怎么办 |
-| --- | --- | --- |
-| **unhealthy** | 控制回路起不来、socket 不响应 | **回滚** |
-| **degraded** | "看不到舵机"（裸板没接舵机） | **不回滚**，健康门放行 |
+| 判定                | 例子                          | 更新器怎么办                 |
+| ------------------- | ----------------------------- | ---------------------------- |
+| **unhealthy** | 控制回路起不来、socket 不响应 | **回滚**               |
+| **degraded**  | "看不到舵机"（裸板没接舵机）  | **不回滚**，健康门放行 |
 
 **为什么 degraded 不回滚**：**它在替换之前就是这么报的** —— 回滚**修不好它**，只会把**历史上每一个 release 都回滚掉**。**回滚只对"这次更新引入的问题"有意义。**
 
 **原则三**：`on_apply.units` 里有两个**故意的缺席** —— `updaterd` 和 `btd`。
 
 > **规则：一个服务不能被"它自己正在执行的那个操作"重启。**
+>
 > - `updaterd`：它是**执行更新的那个进程** —— 重启它 = 更新执行到一半自杀；
 > - `btd`：它可能就是**发起更新的那条传输通道** —— 重启它 = 手机上的进度流断掉，**发起更新的人永远等不到结果**。
 >
@@ -1623,14 +1737,14 @@ apply 之后，最多等 90 秒，等 wlan0 拿到 IPv4 地址
 
 **其余关键值（速查）**：
 
-| 键 | 值 | 为什么 |
-| --- | --- | --- |
-| `trusted_keys_dir` | `/etc/robot/trusted_keys` | 三个 release 公钥**一次全装进去**（虽然现在只有 `release-1` 在签）—— 板子只能认它出厂时烧进去的那组钥匙，**这是"将来能换钥匙"的唯一机会**，否则得重新刷机 |
-| `check_interval` | `6h` | 没有轮询，"最低支持版本"就形同虚设：板子**只会在有人打开 App 时**才知道自己被淘汰了 |
-| `auto_apply` | `mandatory` | 只自动装**带 `min_supported` 的** release（= 我们已经撤回的坏版本）；**普通版本仍然等用户点** —— 机器人什么时候重启是主人的决定 |
-| `golden` | 故意**不设** | 它必须指向一个**真的装过**的版本。设一个从没装过的号，会让救命命令在**最需要它的那一刻**失败 —— 还不如诚实地说"没配 golden" |
-| `keep_previous` | `1` | 保留上一个版本，才有"回滚"这个动作 |
-| `health.probe` / `timeout` | `socket` / `30s` | 健康门的判据是**真测量**（socket 能不能应答），不是"进程还在" |
+| 键                             | 值                          | 为什么                                                                                                                                                                    |
+| ------------------------------ | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `trusted_keys_dir`           | `/etc/robot/trusted_keys` | 三个 release 公钥**一次全装进去**（虽然现在只有 `release-1` 在签）—— 板子只能认它出厂时烧进去的那组钥匙，**这是"将来能换钥匙"的唯一机会**，否则得重新刷机 |
+| `check_interval`             | `6h`                      | 没有轮询，"最低支持版本"就形同虚设：板子**只会在有人打开 App 时**才知道自己被淘汰了                                                                                 |
+| `auto_apply`                 | `mandatory`               | 只自动装**带 `min_supported` 的** release（= 我们已经撤回的坏版本）；**普通版本仍然等用户点** —— 机器人什么时候重启是主人的决定                           |
+| `golden`                     | 故意**不设**          | 它必须指向一个**真的装过**的版本。设一个从没装过的号，会让救命命令在**最需要它的那一刻**失败 —— 还不如诚实地说"没配 golden"                                 |
+| `keep_previous`              | `1`                       | 保留上一个版本，才有"回滚"这个动作                                                                                                                                        |
+| `health.probe` / `timeout` | `socket` / `30s`        | 健康门的判据是**真测量**（socket 能不能应答），不是"进程还在"                                                                                                       |
 
 **最后一个"故意"**：`[component.models]` 整段**不在这份文件里**，而且注释明说"**这不是疏漏，别照抄示例补上**"。
 
@@ -1662,11 +1776,11 @@ golden 那个已知好的版本
 
 #### 10.6.2 它怎么判定"没起来"
 
-| 判据 | 值 |
-| --- | --- |
-| 只盯 4 个成员 | `updaterd` / `robotd` / `configd` / `btd` |
-| 判定为坏 | `ActiveState == failed`，**或** 重启次数 `>= 3` |
-| 开机超过 600 秒 | **放弃检查**（这台板子已经"活够久了"，别去动它） |
+| 判据            | 值                                                        |
+| --------------- | --------------------------------------------------------- |
+| 只盯 4 个成员   | `updaterd` / `robotd` / `configd` / `btd`         |
+| 判定为坏        | `ActiveState == failed`，**或** 重启次数 `>= 3` |
+| 开机超过 600 秒 | **放弃检查**（这台板子已经"活够久了"，别去动它）    |
 
 **为什么是"失败 或 重启次数过多"两条一起看**：单看"失败"会漏掉"疯狂重启但从没真正失败"的进程；单看重启次数会误伤"刚重启过一次的良性疾病"。**两条一起看，才既不漏、也不误伤。**
 
@@ -1685,14 +1799,14 @@ golden 那个已知好的版本
 
 **它的几条硬规矩**：
 
-| 规矩 | 为什么 |
-| --- | --- |
-| **退回 `golden`，不是退回"上一个版本"** | `keep_previous` 保的那个"上一个"**可能正是刚坏掉的那个**。救援要的是**已知好**，不是**最近** |
-| 用 `mv -fT`（不是 `ln -sfn`） | `rename(2)` 是**原子**的：要么旧指针、要么新指针，**不存在"指针丢失"的中间态** |
-| **先写面包屑、再换指针** | 面包屑写在 **swap 之前**，这个顺序是**刻意**的：即使换到一半断电，重启后**至少知道"这里救援过"** |
-| 面包屑是 `key=value` 纯文本，不是 JSON | 能救命的格式要**能被任何工具打开**（`cat` 就够），**不需要解析器** |
-| 没有 `golden` / `golden` 没装 / `current` 已经是 `golden` → **退出码 2 拒绝执行** | **拒绝也是一种答案**，而且比"假装做了一次救援"有用得多 |
-| 有面包屑 → 拒绝重复救援 | **防循环**：救援本身把系统搞坏时，不要无限救下去 |
+| 规矩                                                                                            | 为什么                                                                                                            |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| **退回 `golden`，不是退回"上一个版本"**                                                 | `keep_previous` 保的那个"上一个"**可能正是刚坏掉的那个**。救援要的是**已知好**，不是**最近**  |
+| 用`mv -fT`（不是 `ln -sfn`）                                                                | `rename(2)` 是**原子**的：要么旧指针、要么新指针，**不存在"指针丢失"的中间态**                      |
+| **先写面包屑、再换指针**                                                                  | 面包屑写在**swap 之前**，这个顺序是**刻意**的：即使换到一半断电，重启后**至少知道"这里救援过"** |
+| 面包屑是`key=value` 纯文本，不是 JSON                                                         | 能救命的格式要**能被任何工具打开**（`cat` 就够），**不需要解析器**                                  |
+| 没有`golden` / `golden` 没装 / `current` 已经是 `golden` → **退出码 2 拒绝执行** | **拒绝也是一种答案**，而且比"假装做了一次救援"有用得多                                                      |
+| 有面包屑 → 拒绝重复救援                                                                        | **防循环**：救援本身把系统搞坏时，不要无限救下去                                                            |
 
 **`--dry-run` 是给谁用的**：给你。**任何"救命脚本"都应该能先空跑一遍**，看清楚它要动哪两个东西再执行。
 
@@ -1702,11 +1816,11 @@ golden 那个已知好的版本
 
 **先看分工，再看内容**：
 
-| 层 | 在哪运行 | 职责 |
-| --- | --- | --- |
-| `provision-board.sh` | **你的 Windows 机器** | 唯一一个**不**在板子上跑的脚本。负责"把东西送上去、按顺序触发、把结果带回来" |
-| `provision.sh` | **板子上**（SSH 进去之后） | 板子端的编排者 |
-| `setup-board.sh` / `migrate-network.sh` / `install.sh` | 板子上 | 真正干活的三个 |
+| 层                                                           | 在哪运行                         | 职责                                                                               |
+| ------------------------------------------------------------ | -------------------------------- | ---------------------------------------------------------------------------------- |
+| `provision-board.sh`                                       | **你的 Windows 机器**      | 唯一一个**不**在板子上跑的脚本。负责"把东西送上去、按顺序触发、把结果带回来" |
+| `provision.sh`                                             | **板子上**（SSH 进去之后） | 板子端的编排者                                                                     |
+| `setup-board.sh` / `migrate-network.sh` / `install.sh` | 板子上                           | 真正干活的三个                                                                     |
 
 **它的核心设计声明（文件头原话，值得直接记住）**：
 
@@ -1718,26 +1832,26 @@ golden 那个已知好的版本
 
 **防死循环的两个守卫（设计得很干净，值得抄）**：
 
-| 守卫 | 机制 |
-| --- | --- |
-| **恢复单元先自我禁用、再干活** | 开机自动续跑的 `robot-provision.service` 第一件事是**把自己 disable 掉** —— 这样**万一它自己挂了，不会无限重启成循环** |
-| **`migrate-network.sh` 只在"NM 已经接管 wifi"时才重跑** | 网络迁移是**唯一不可重入**的一步，所以给它加了**前置条件**（判断"是不是已经切过了"），而不是靠"重跑一次没事" |
+| 守卫                                                            | 机制                                                                                                                                  |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **恢复单元先自我禁用、再干活**                            | 开机自动续跑的`robot-provision.service` 第一件事是**把自己 disable 掉** —— 这样**万一它自己挂了，不会无限重启成循环** |
+| **`migrate-network.sh` 只在"NM 已经接管 wifi"时才重跑** | 网络迁移是**唯一不可重入**的一步，所以给它加了**前置条件**（判断"是不是已经切过了"），而不是靠"重跑一次没事"              |
 
 **还有一段很现实的逻辑：DHCP 竞争 + 蓝牙兜底**。板子刚起来时网络还没拿到地址，而你要从 Windows 连它 —— **`provision-board.sh` 会在等不到地址时退回蓝牙（BLE）这条路**。这就是它为什么有那么多 `--no-ble` / `--pause-btd-on-pair` / `--weird-ble` 开关。
 
 **它的常用开关（速查）**：
 
-| 开关 | 作用 |
-| --- | --- |
-| `--ref <分支/tag>` | 要装哪个 ref（配合"开发板"就能装分支构建） |
-| `--name <名字>` | 给机器人起名（之后 `dev-push.sh --name` 就靠它找到板子） |
-| `--forget-host-key` | 板子重刷过、host key 变了时用 |
-| `--local` | 用本地已下好的资产，不重新下 |
+| 开关                                    | 作用                                                      |
+| --------------------------------------- | --------------------------------------------------------- |
+| `--ref <分支/tag>`                    | 要装哪个 ref（配合"开发板"就能装分支构建）                |
+| `--name <名字>`                       | 给机器人起名（之后`dev-push.sh --name` 就靠它找到板子） |
+| `--forget-host-key`                   | 板子重刷过、host key 变了时用                             |
+| `--local`                             | 用本地已下好的资产，不重新下                              |
 | `--no-dev-key` / `--dev-key <路径>` | 控制要不要信任 dev 签名（= 要不要让这块板子能装分支构建） |
-| `--no-ble` | 不走蓝牙兜底 |
-| `--pause-btd-on-pair` | 手柄配对不上时先试这个 |
-| `--no-gstreamer` / `--no-rkaiq` | 跳过摄像头相关组件（没有摄像头时） |
-| `--weird-ble` | **不要乱开**：给蓝牙行为异常的板子用的逃生舱口 |
+| `--no-ble`                            | 不走蓝牙兜底                                              |
+| `--pause-btd-on-pair`                 | 手柄配对不上时先试这个                                    |
+| `--no-gstreamer` / `--no-rkaiq`     | 跳过摄像头相关组件（没有摄像头时）                        |
+| `--weird-ble`                         | **不要乱开**：给蓝牙行为异常的板子用的逃生舱口      |
 
 **你要带走的那一条**：**编排层只做一件事 —— 按顺序调用，并且保证"中途断了能接着跑"。** 一旦它开始"顺便帮子脚本做点什么"，它就从"编排"退化成了"第二个真相"。
 
@@ -1758,10 +1872,10 @@ radxa@<板子IP>     → 直连
 
 **关键点二：两种交叉编译路径**
 
-| 路径 | 命令 | 特点 |
-| --- | --- | --- |
-| zigbuild | `cargo board --bins` | 本机直接交叉编译，快；需要 `cargo-zigbuild` + `zig` |
-| Docker | `cargo build --release --target aarch64-unknown-linux-gnu --bins` | 起一个 aarch64 构建环境；**Windows 上没有 zigbuild 时走这条** |
+| 路径     | 命令                                                                | 特点                                                                |
+| -------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| zigbuild | `cargo board --bins`                                              | 本机直接交叉编译，快；需要`cargo-zigbuild` + `zig`              |
+| Docker   | `cargo build --release --target aarch64-unknown-linux-gnu --bins` | 起一个 aarch64 构建环境；**Windows 上没有 zigbuild 时走这条** |
 
 **关键点三：版本号长什么样、为什么**
 
@@ -1788,12 +1902,12 @@ radxa@<板子IP>     → 直连
 
 **几个细节**：
 
-| 细节 | 说明 |
-| --- | --- |
-| 私钥路径 | `$DUCK_DEV_SECRET_KEY`，默认 `~/.duck-keys/team.dev.key` |
-| `--bootstrap` | **逃生舱口**：当"引导"这条正常路径本身有问题时绕过它。**名字的意思就是"我知道我在绕过什么"** |
-| 退出码 2 | 表示**接口不匹配**（板子上的 `robotctl` 和你要推的东西对不上） |
-| 它**不做**什么 | 不帮你配交叉编译环境、不帮你创建 dev key、不帮你把板子变成"开发板"（那是 §12 的三个前置条件） |
+| 细节                 | 说明                                                                                                     |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| 私钥路径             | `$DUCK_DEV_SECRET_KEY`，默认 `~/.duck-keys/team.dev.key`                                             |
+| `--bootstrap`      | **逃生舱口**：当"引导"这条正常路径本身有问题时绕过它。**名字的意思就是"我知道我在绕过什么"** |
+| 退出码 2             | 表示**接口不匹配**（板子上的 `robotctl` 和你要推的东西对不上）                                   |
+| 它**不做**什么 | 不帮你配交叉编译环境、不帮你创建 dev key、不帮你把板子变成"开发板"（那是 §12 的三个前置条件）           |
 
 ---
 
@@ -1803,11 +1917,11 @@ radxa@<板子IP>     → 直连
 
 #### A. `/etc/robot/*.toml` —— **运维的文件，一旦装上就被"冻结"**
 
-| 事实 | 后果 |
-| --- | --- |
-| `install.sh` **只在第一次**拷贝它 | 之后**任何更新都不会动它** |
-| 更新覆盖 `/opt/robot/**`，**不碰 `/etc`** | 所以它**能扛过更新和回滚**（这正是设计目的） |
-| 同时也意味着：**你写进去的值会被冻在这块板子上** | **新 release 的默认值你永远拿不到** |
+| 事实                                                   | 后果                                               |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| `install.sh` **只在第一次**拷贝它              | 之后**任何更新都不会动它**                   |
+| 更新覆盖`/opt/robot/**`，**不碰 `/etc`**     | 所以它**能扛过更新和回滚**（这正是设计目的） |
+| 同时也意味着：**你写进去的值会被冻在这块板子上** | **新 release 的默认值你永远拿不到**          |
 
 **这份文件里有一条"纪律"，值得抄到任何项目里**（`robotd.toml` 的注释写了它造成过的真实后果）：
 
@@ -1817,10 +1931,10 @@ radxa@<板子IP>     → 直连
 
 #### B. `updater.toml` vs `updater.example.toml` —— **两份文件，两种角色**
 
-| 文件 | 角色 |
-| --- | --- |
-| `updater.example.toml` | **注疏版**：把**所有**选项都写出来，包括**故意没设**的那些。回答"**有可能怎么配**" |
-| `updater.toml`（装在板子上的） | **事实版**：只写**这台出厂机器人真实的样子**。回答"**实际怎么配的**" |
+| 文件                             | 角色                                                                                                       |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `updater.example.toml`         | **注疏版**：把**所有**选项都写出来，包括**故意没设**的那些。回答"**有可能怎么配**" |
+| `updater.toml`（装在板子上的） | **事实版**：只写**这台出厂机器人真实的样子**。回答"**实际怎么配的**"                     |
 
 原话把两者的关系说得很准：
 
@@ -1828,13 +1942,13 @@ radxa@<板子IP>     → 直连
 
 #### C. `robotd.toml` 里**第一次就该看一眼**的几个值
 
-| 键 | 教程里的期望值 | 说明 |
-| --- | --- | --- |
-| `[platform].variant` | `open_microduck` | **一行决定**舵机协议、IMU 从哪读、以及一组标定过的运行时数值 |
-| `[bus].port` | **生产接线是 `/dev/ttyS2`** | ️ 见下面的警告 |
-| `[imu].bus` | **生产接线是 `/dev/i2c-imu`**（i2c4、0x6A） | ⚠️ 见下面的警告 |
-| `[policy].enabled` | 看你要不要跑策略 | **`false` 会让它"保持当前姿势"并且依然是健康的** —— 这是刻意留的台架配置，**不是降级** |
-| `[policy].action_scale` | 走路默认 0.9（roller 0.8） | 本教程里改成 `0.3` 让它慢一点（§7 提过） |
+| 键                        | 教程里的期望值                                      | 说明                                                                                                   |
+| ------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `[platform].variant`    | `open_microduck`                                  | **一行决定**舵机协议、IMU 从哪读、以及一组标定过的运行时数值                                     |
+| `[bus].port`            | **生产接线是 `/dev/ttyS2`**                 | ️ 见下面的警告                                                                                        |
+| `[imu].bus`             | **生产接线是 `/dev/i2c-imu`**（i2c4、0x6A） | ⚠️ 见下面的警告                                                                                      |
+| `[policy].enabled`      | 看你要不要跑策略                                    | **`false` 会让它"保持当前姿势"并且依然是健康的** —— 这是刻意留的台架配置，**不是降级** |
+| `[policy].action_scale` | 走路默认 0.9（roller 0.8）                          | 本教程里改成`0.3` 让它慢一点（§7 提过）                                                             |
 
 > ️ **实测提醒（值得你自己去看一眼）**：仓库里的 `deploy/robotd.toml.walk` 模板写着 `port = "/dev/ttyACM0"`、`bus = "/dev/i2c-5"`，**而它自己的注释和本教程都写着生产接线是 `/dev/ttyS2` 和 `/dev/i2c-imu`**。
 > 这**不一定是 bug**（注释里说了"接线不同的板子可以覆盖"、"有些板子会在 `/dev/i2c-5` 上应答"），但**它意味着：不能靠"默认值"来假设你的接线**。
@@ -1853,15 +1967,15 @@ radxa@<板子IP>     → 直连
 
 `microduck/scripts/` 下有 **23 个**脚本。上面已经拆了 8 个，剩下的这些**不需要你手动跑**，但**知道它们存在**能省很多困惑（尤其是"为什么更新的时候它会自己装东西"）。
 
-| 脚本 | 角色 | 你要知道的一件事 |
-| --- | --- | --- |
-| `setup-gstreamer.sh` | 装 `mediad` 需要的 GStreamer 全套，并且**报告这块板子能编什么** | **由 `hooks/preinstall` 在每次更新时自动跑**，带 10 分钟上限、**没有 token** —— 这就是为什么插件源必须是公开的，而且它**绝不能弹交互** |
-| `setup-rkaiq.sh` | 装 Rockchip rkaiq 3A 引擎 + IMX219 调参 | **不装的话画面是绿的、而且全是噪点**（ISP 用裸默认值在跑）；**曝光不归它管**（那是 `mediad` 的 exposure 模块的事） |
-| `setup-npu.sh` | 装 NPU 运行时 `librknnrt.so`，并**报告驱动那一半在不在** | 它需要**两半**：驱动（在内核里，有就有、没有就没有）+ 运行时（厂商 blob，不在任何 Debian 源里）。**默认会顺手把设备树里的 NPU 节点打开**，因为 Armbian 在**每一块** Radxa Zero 3 上都是 `status = "disabled"` |
-| `setup-login.sh` | 登录 shell 的三样小东西：`robotctl` 补全、印着当前 release 的横幅、提示符里带机器人名字 | **为什么它是独立脚本、而不是塞进 `install.sh`**：`install.sh` **只跑一次**，而这几样"每个版本都可能变"，所以必须**每次更新都跑一遍** |
-| `board-test.sh` | 交叉编译 + 在容器里**真的跑一遍**验证 | **不是硬件的替代品**，但能抓住"只在开发机上不出现"的问题（交叉链接、glibc 下限、unix socket / 文件权限语义） |
-| `systemd-test.sh` | systemd 单元相关测试 | CI 用，与你无关 |
-| `pad-*.sh` / `provision-hls.py` / `bake-duck-mesh.py` / `cross-sysroot.sh` | 上位机 / 工具链 / 打包类工具 | 与"把这块板子跑起来"无关，本教程不展开 |
+| 脚本                                                                               | 角色                                                                                      | 你要知道的一件事                                                                                                                                                                                                                                                                                                                                                |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup-gstreamer.sh`                                                             | 装`mediad` 需要的 GStreamer 全套，并且**报告这块板子能编什么**                    | **由 `hooks/preinstall` 在每次更新时自动跑**，带 10 分钟上限、**没有 token** —— 这就是为什么插件源必须是公开的，而且它**绝不能弹交互**                                                                                                                                                                                                    |
+| `setup-rkaiq.sh`                                                                 | 装 Rockchip rkaiq 3A 引擎 + IMX219 调参                                                   | **不装的话画面是绿的、而且全是噪点**（ISP 用裸默认值在跑）；**曝光不归它管**（那是 `mediad` 的 exposure 模块的事）                                                                                                                                                                                                                                |
+| `setup-npu.sh`                                                                   | 装 NPU 运行时`librknnrt.so`，并**报告驱动那一半在不在**                           | 它需要**两半**：驱动（在内核里，有就有、没有就没有）+ 运行时（厂商 blob，不在任何 Debian 源里）。⚠️ **在 Radxa OS 6.1 上它的报告是"假警报"**：驱动 `CONFIG_ROCKCHIP_RKNPU=y` **内置**（v0.9.8，DRM 接口，设备在 `/dev/dri/renderD128`），脚本却按 Armbian 布局找节点、按 `/proc/rknpu` 找版本 → 见 §7.5③，只需手动开设备树节点即可 |
+| `setup-login.sh`                                                                 | 登录 shell 的三样小东西：`robotctl` 补全、印着当前 release 的横幅、提示符里带机器人名字 | **为什么它是独立脚本、而不是塞进 `install.sh`**：`install.sh` **只跑一次**，而这几样"每个版本都可能变"，所以必须**每次更新都跑一遍**                                                                                                                                                                                                      |
+| `board-test.sh`                                                                  | 交叉编译 + 在容器里**真的跑一遍**验证                                               | **不是硬件的替代品**，但能抓住"只在开发机上不出现"的问题（交叉链接、glibc 下限、unix socket / 文件权限语义）                                                                                                                                                                                                                                              |
+| `systemd-test.sh`                                                                | systemd 单元相关测试                                                                      | CI 用，与你无关                                                                                                                                                                                                                                                                                                                                                 |
+| `pad-*.sh` / `provision-hls.py` / `bake-duck-mesh.py` / `cross-sysroot.sh` | 上位机 / 工具链 / 打包类工具                                                              | 与"把这块板子跑起来"无关，本教程不展开                                                                                                                                                                                                                                                                                                                          |
 
 **这一节最值得带走的一条**（关于"每次更新都跑一遍"这件事）：
 
@@ -1875,11 +1989,11 @@ radxa@<板子IP>     → 直连
 
 把上面全部东西压成一张表。以后看到任何一个新脚本，**先归类**：
 
-| 类型 | 例子 | 特征 | 什么时候该动它 |
-| --- | --- | --- | --- |
-| **一次性的 bring-up** | `setup-board.sh`、`migrate-network.sh` | 改的是**机器本身**（设备树、网络栈、内核参数）；跑对了就该退休 | 换硬件、重刷系统、apt 升级内核之后 |
-| **幂等、每次更新都跑的** | `setup-gstreamer.sh`、`setup-rkaiq.sh`、`setup-npu.sh`、`setup-login.sh` | 改的是**运行时依赖**；**必须能在已经配好的机器上重复跑** | 基本不用手动动；手动跑 = 重试 |
-| **编排 / 救援 / 开发** | `provision-*.sh`、`dev-push.sh`、`robot-rescue`、`robot-boot-check` | **不实现功能**，只负责"按顺序调"或"出事时兜底" | 出问题时；`robot-rescue` 是最后的救命路径 |
+| 类型                           | 例子                                                                             | 特征                                                                 | 什么时候该动它                              |
+| ------------------------------ | -------------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------- |
+| **一次性的 bring-up**    | `setup-board.sh`、`migrate-network.sh`                                       | 改的是**机器本身**（设备树、网络栈、内核参数）；跑对了就该退休 | 换硬件、重刷系统、apt 升级内核之后          |
+| **幂等、每次更新都跑的** | `setup-gstreamer.sh`、`setup-rkaiq.sh`、`setup-npu.sh`、`setup-login.sh` | 改的是**运行时依赖**；**必须能在已经配好的机器上重复跑** | 基本不用手动动；手动跑 = 重试               |
+| **编排 / 救援 / 开发**   | `provision-*.sh`、`dev-push.sh`、`robot-rescue`、`robot-boot-check`      | **不实现功能**，只负责"按顺序调"或"出事时兜底"                 | 出问题时；`robot-rescue` 是最后的救命路径 |
 
 **看一个脚本属于哪一类，只看三件事**：
 
@@ -1909,13 +2023,13 @@ radxa@<板子IP>     → 直连
 | 手柄配对不上                                                        | 先试`--pause-btd-on-pair`，不行再 `--weird-ble`（不要乱开）                                                  |
 | 板上日志找不到了                                                    | `/var/log` 是内存，断电即失；持久记录是 `robotctl update log`                                                |
 | 板子没有 RTC → TLS 报错                                            | `timedatectl` 等 NTP 同步（Wi-Fi 连上后自动同步）                                                              |
-| `robotctl` 报 `Permission denied (os error 13)`                     | `robot` 组没在当前 shell 生效 → `newgrp robot`（或重开 SSH），见 §8.4                                         |
-| 装完后重跑 install.sh，版本号没变                                    | **设计如此**：已装 release 会跳过引导 → 用 `sudo robotctl update apply daemon` 升级，见 §7.3                 |
-| install.sh 下载资产报 404，但仓库存在                                | 私有仓库忘了 `DUCK_TOKEN`（GitHub 用 404 掩盖 401）→ 设 token 并 `sudo -E` 重跑，见 §7.2                    |
-| install.sh 打印 `bootstrap binary does not match`                    | 引导二进制与签名 release 不一致 → **当"下载被篡改"处理**，不要重试掩盖，见 §7.3                              |
-| 更新装了，但某个守护进程还在跑**老二进制**                            | `on_apply.units` 是"补充清单"不是权威清单；老板子可能留着写死的 `units = ["robotd"]`，见 §10.5                 |
-| 改了 `/etc/robot/*.toml`，新 release 的默认值却不生效                 | **设计如此**：`/etc` 不参与更新，你写进去的值会被**永久冻在板子上**，见 §10.9                                 |
-| 不确定 `robotd.toml` 里的 `port` / `bus` 该怎么填                       | **不要靠默认值假设接线** → `ls -l /dev/ttyS2 /dev/i2c-imu` 后再填，见 §10.9                                  |
+| `robotctl` 报 `Permission denied (os error 13)`                 | `robot` 组没在当前 shell 生效 → `newgrp robot`（或重开 SSH），见 §8.4                                      |
+| 装完后重跑 install.sh，版本号没变                                   | **设计如此**：已装 release 会跳过引导 → 用 `sudo robotctl update apply daemon` 升级，见 §7.3           |
+| install.sh 下载资产报 404，但仓库存在                               | 私有仓库忘了`DUCK_TOKEN`（GitHub 用 404 掩盖 401）→ 设 token 并 `sudo -E` 重跑，见 §7.2                    |
+| install.sh 打印`bootstrap binary does not match`                  | 引导二进制与签名 release 不一致 →**当"下载被篡改"处理**，不要重试掩盖，见 §7.3                           |
+| 更新装了，但某个守护进程还在跑**老二进制**                    | `on_apply.units` 是"补充清单"不是权威清单；老板子可能留着写死的 `units = ["robotd"]`，见 §10.5              |
+| 改了`/etc/robot/*.toml`，新 release 的默认值却不生效              | **设计如此**：`/etc` 不参与更新，你写进去的值会被**永久冻在板子上**，见 §10.9                     |
+| 不确定`robotd.toml` 里的 `port` / `bus` 该怎么填              | **不要靠默认值假设接线** → `ls -l /dev/ttyS2 /dev/i2c-imu` 后再填，见 §10.9                            |
 
 ---
 
@@ -1927,11 +2041,11 @@ radxa@<板子IP>     → 直连
 
 **三个前置条件（缺一就走不通）**：
 
-| # | 条件 | 怎么确认 | 缺了会怎样 |
-| --- | --- | --- | --- |
-| 1 | **板子是"开发板"**（信任 dev 签名） | §8.3 的两条命令 | `--ref 分支` 被拒绝，报错像"签名损坏" |
-| 2 | **dev 签名私钥**在 `~/.duck-keys/team.dev.key` | `ls -l ~/.duck-keys/team.dev.key` | 签名不了，推不出去 |
-| 3 | **有交叉编译能力**（zigbuild 或 Docker，二选一） | 见 `onboarding.md` §5 | 编译不出 aarch64 二进制（在 Windows 上必然如此） |
+| # | 条件                                                   | 怎么确认                            | 缺了会怎样                                       |
+| - | ------------------------------------------------------ | ----------------------------------- | ------------------------------------------------ |
+| 1 | **板子是"开发板"**（信任 dev 签名）              | §8.3 的两条命令                    | `--ref 分支` 被拒绝，报错像"签名损坏"          |
+| 2 | **dev 签名私钥**在 `~/.duck-keys/team.dev.key` | `ls -l ~/.duck-keys/team.dev.key` | 签名不了，推不出去                               |
+| 3 | **有交叉编译能力**（zigbuild 或 Docker，二选一） | 见`onboarding.md` §5             | 编译不出 aarch64 二进制（在 Windows 上必然如此） |
 
 **为什么需要交叉编译**：你的板子是 aarch64、开发机是 x86_64 Windows。要么用 zigbuild、要么用 Docker 起一个 aarch64 构建环境 —— **没法在 Windows 上直接编出能跑的二进制**。
 
@@ -1958,27 +2072,27 @@ sudo robotctl update rollback daemon
 
 ## 13. 参考文档索引
 
-| 想看什么                              | 文件                                                                                                       |
-| ------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
-| 中文路径图（"这是什么 → 我能跑吗"）  | `joyandai/microduck/docs/onboarding.md`                                                                  |
-| 从零装开发板（最短流程）              | `joyandai/microduck/docs/robot/install-dev.md`                                                           |
-| 每一步拆开手工做                      | `joyandai/microduck/docs/robot/install-by-hand.md`                                                       |
-| 全部`robotctl` 命令                 | `joyandai/microduck/docs/robot/cheatsheet.md`                                                            |
-| 分支构建/更新陷阱                     | `joyandai/microduck/docs/robot/cheatsheet-dev.md`                                                        |
-| 笔记本蓝牙控制                        | `joyandai/microduck/docs/robot/duckctl.md`                                                               |
-| 手柄配对细节                          | `joyandai/microduck/docs/robot/pair-a-gamepad.md`                                                        |
-| 镜像信任链/日志落盘（深度）           | `joyandai/microduck/deploy/README.md`                                                                    |
-| 更新器内部设计（对应 §10.3 / §10.5）  | `joyandai/microduck/docs/design/updater-design.md`                                                       |
-| 重启顺序 / 为什么 updaterd 和 btd 不重启（§10.5） | `joyandai/microduck/docs/design/restart-order.md`                                             |
-| `units` 写死清单那个 bug 的完整记录（§10.5） | `joyandai/microduck/docs/project/install-path-gap.md`                                              |
-| 开机自检 + 救援链设计（对应 §10.6）   | `joyandai/microduck/docs/design/boot-recovery-net.md`                                                    |
-| 蓝牙通道更新 + `btd` 权限（对应 §10.4） | `joyandai/microduck/docs/project/update-over-ble.md`                                                    |
-| `dev-push.sh` 官方说明（对应 §10.8）  | `joyandai/microduck/docs/robot/dev-push.md`                                                              |
-| 分层架构与"为什么配置要活过一次更新"（§10.9） | `joyandai/microduck/docs/design/architecture.md`                                                  |
-| 底层诊断工具交叉编译（WSL）           | `joyandai/microduck/docs/robot/bringup-examples.md`                                                      |
-| 主控选型/板子参数                     | `OpenMicroDuck/docs/main_controller.md`                                                                  |
-| 软硬件架构总览                        | `OpenMicroDuck/docs/architecture.md`                                                                     |
-| Radxa Zero 3W / 3E 硬件差异（踩坑用） | `https://forum.armbian.com/topic/58329-radxa-zero-3w-emmc-not-detected-vmmc-supply-lookup-fails-in-dtb/` |
+| 想看什么                                           | 文件                                                                                                       |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 中文路径图（"这是什么 → 我能跑吗"）               | `joyandai/microduck/docs/onboarding.md`                                                                  |
+| 从零装开发板（最短流程）                           | `joyandai/microduck/docs/robot/install-dev.md`                                                           |
+| 每一步拆开手工做                                   | `joyandai/microduck/docs/robot/install-by-hand.md`                                                       |
+| 全部`robotctl` 命令                              | `joyandai/microduck/docs/robot/cheatsheet.md`                                                            |
+| 分支构建/更新陷阱                                  | `joyandai/microduck/docs/robot/cheatsheet-dev.md`                                                        |
+| 笔记本蓝牙控制                                     | `joyandai/microduck/docs/robot/duckctl.md`                                                               |
+| 手柄配对细节                                       | `joyandai/microduck/docs/robot/pair-a-gamepad.md`                                                        |
+| 镜像信任链/日志落盘（深度）                        | `joyandai/microduck/deploy/README.md`                                                                    |
+| 更新器内部设计（对应 §10.3 / §10.5）             | `joyandai/microduck/docs/design/updater-design.md`                                                       |
+| 重启顺序 / 为什么 updaterd 和 btd 不重启（§10.5） | `joyandai/microduck/docs/design/restart-order.md`                                                        |
+| `units` 写死清单那个 bug 的完整记录（§10.5）    | `joyandai/microduck/docs/project/install-path-gap.md`                                                    |
+| 开机自检 + 救援链设计（对应 §10.6）               | `joyandai/microduck/docs/design/boot-recovery-net.md`                                                    |
+| 蓝牙通道更新 +`btd` 权限（对应 §10.4）          | `joyandai/microduck/docs/project/update-over-ble.md`                                                     |
+| `dev-push.sh` 官方说明（对应 §10.8）            | `joyandai/microduck/docs/robot/dev-push.md`                                                              |
+| 分层架构与"为什么配置要活过一次更新"（§10.9）     | `joyandai/microduck/docs/design/architecture.md`                                                         |
+| 底层诊断工具交叉编译（WSL）                        | `joyandai/microduck/docs/robot/bringup-examples.md`                                                      |
+| 主控选型/板子参数                                  | `OpenMicroDuck/docs/main_controller.md`                                                                  |
+| 软硬件架构总览                                     | `OpenMicroDuck/docs/architecture.md`                                                                     |
+| Radxa Zero 3W / 3E 硬件差异（踩坑用）              | `https://forum.armbian.com/topic/58329-radxa-zero-3w-emmc-not-detected-vmmc-supply-lookup-fails-in-dtb/` |
 
 ---
 

@@ -1,11 +1,28 @@
-# 大体积原始数据：作为 GitHub Release 附件发布，不进 git 历史
+# ===== 大体积原始数据：作为 GitHub Release 附件发布，不进 git 历史 =====
 model_archive/
 bam_dryrun/
 
 # microduck_rl 的旧纯拷贝快照（已被 microduck_rl 子模块取代）
 joyandai/microduck_rl/
 
-# Python / 工具链产物
+# ===== 本机 / 会话私有：不入库 =====
+# 板子当前地址、内网信息
+ssh远程地址.txt
+# 本地工具链（JDK / Gradle / uv 的离线包）与发布签名密钥
+.tools/
+# 编辑器 / AI 助手的会话目录
+.trae/
+
+# ===== Android App 构建产物与本地配置 =====
+# 注意：Gradle 工程在 app/，模块目录也叫 app/，所以产物是 app/app/build/
+app/app/build/
+app/build/
+app/.gradle/
+app/local.properties
+app/.idea/
+app/captures/
+
+# ===== Python / 工具链产物 =====
 .venv/
 **/.venv/
 __pycache__/
@@ -14,7 +31,7 @@ __pycache__/
 node_modules/
 target/
 
-# 操作系统噪音
+# ===== 操作系统噪音 =====
 Thumbs.db
 desktop.ini
 .DS_Store

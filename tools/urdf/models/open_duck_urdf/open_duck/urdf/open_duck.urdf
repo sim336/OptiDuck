@@ -1,0 +1,859 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="open_duck">
+  <link
+    name="base_link">
+    <inertial>
+      <origin
+        xyz="-0.18015 0.033489 -0.15391"
+        rpy="0 0 0" />
+      <mass
+        value="0.22976" />
+      <inertia
+        ixx="9.3278E-05"
+        ixy="1.0323E-06"
+        ixz="-7.5921E-06"
+        iyy="0.00014139"
+        iyz="1.3436E-05"
+        izz="0.00010148" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/base_link.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/base_link.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="yaw2roll">
+    <inertial>
+      <origin
+        xyz="0.00091469 -0.0010233 -0.026724"
+        rpy="0 0 0" />
+      <mass
+        value="0.056714" />
+      <inertia
+        ixx="1.5934E-05"
+        ixy="-3.9602E-07"
+        ixz="1.4998E-07"
+        iyy="1.7142E-05"
+        iyz="4.4779E-08"
+        izz="1.0886E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/yaw2roll.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/yaw2roll.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_yaw"
+    type="revolute">
+    <origin
+      xyz="-0.16159 0.11336 0.045113"
+      rpy="-1.2954 0.12282 -0.4891" />
+    <parent
+      link="base_link" />
+    <child
+      link="yaw2roll" />
+    <axis
+      xyz="3e-06 -0.009749 0.999952" />
+    <limit
+      lower="-0.4363"
+      upper="0.5236"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="hip_l">
+    <inertial>
+      <origin
+        xyz="-0.0029859 0.017816 -0.0048704"
+        rpy="0 0 0" />
+      <mass
+        value="0.010639" />
+      <inertia
+        ixx="3.6547E-06"
+        ixy="2.5081E-07"
+        ixz="-1.8375E-07"
+        iyy="2.1813E-06"
+        iyz="1.1069E-06"
+        izz="2.1957E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/hip_l.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/hip_l.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_roll"
+    type="revolute">
+    <origin
+      xyz="0.019835 0.005922 -0.01708"
+      rpy="-0.79989 -1.5708 -2.0032" />
+    <parent
+      link="yaw2roll" />
+    <child
+      link="hip_l" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-0.384"
+      upper="0.384"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="upper_leg_left">
+    <inertial>
+      <origin
+        xyz="-0.023024 -0.025162 0.018536"
+        rpy="0 0 0" />
+      <mass
+        value="0.083426" />
+      <inertia
+        ixx="1.7785E-05"
+        ixy="-1.0982E-07"
+        ixz="2.3293E-21"
+        iyy="1.7915E-05"
+        iyz="-3.3881E-21"
+        izz="1.8334E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/upper_leg_left.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/upper_leg_left.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_hip_pitch"
+    type="revolute">
+    <origin
+      xyz="-0.0055981 0.033536 -0.025"
+      rpy="-1.5708 -0.81097 0.1654" />
+    <parent
+      link="hip_l" />
+    <child
+      link="upper_leg_left" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="leg">
+    <inertial>
+      <origin
+        xyz="-0.023773 0.032093 -0.013313"
+        rpy="0 0 0" />
+      <mass
+        value="0.045494" />
+      <inertia
+        ixx="1.0572E-05"
+        ixy="2.6958E-06"
+        ixz="3.9069E-09"
+        iyy="8.4609E-06"
+        iyz="-5.7257E-09"
+        izz="1.0335E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/leg.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/leg.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_knee"
+    type="revolute">
+    <origin
+      xyz="-0.030542 -0.052752 0"
+      rpy="-3.1416 0 -0.21531" />
+    <parent
+      link="upper_leg_left" />
+    <child
+      link="leg" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="ankle_left">
+    <inertial>
+      <origin
+        xyz="0.0061372 -0.011792 -0.0195"
+        rpy="0 0 0" />
+      <mass
+        value="0.023715" />
+      <inertia
+        ixx="7.1898E-06"
+        ixy="-1.7453E-06"
+        ixz="-3.4411E-21"
+        iyy="7.0883E-06"
+        iyz="4.2352E-21"
+        izz="5.0577E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/ankle_left.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/ankle_left.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_ankle"
+    type="revolute">
+    <origin
+      xyz="-0.030042 0.044027 0.0048"
+      rpy="0 0 2.9263" />
+    <parent
+      link="leg" />
+    <child
+      link="ankle_left" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="bearing_roll">
+    <inertial>
+      <origin
+        xyz="0.00085255 0.0010756 0.026724"
+        rpy="0 0 0" />
+      <mass
+        value="0.056714" />
+      <inertia
+        ixx="1.5891E-05"
+        ixy="3.219E-07"
+        ixz="-1.5237E-07"
+        iyy="1.7184E-05"
+        iyz="3.5828E-08"
+        izz="1.0886E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/bearing_roll.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/bearing_roll.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_yaw"
+    type="revolute">
+    <origin
+      xyz="-0.16049 0.1271 0.00070269"
+      rpy="1.8441 0 -0.52371" />
+    <parent
+      link="base_link" />
+    <child
+      link="bearing_roll" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-0.5236"
+      upper="0.4363"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="hip_l_2">
+    <inertial>
+      <origin
+        xyz="0.0018905 -0.017966 -0.0038705"
+        rpy="0 0 0" />
+      <mass
+        value="0.010639" />
+      <inertia
+        ixx="3.6793E-06"
+        ixy="1.6133E-07"
+        ixz="1.1742E-07"
+        iyy="2.1567E-06"
+        iyz="-1.1159E-06"
+        izz="2.1957E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/hip_l_2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/hip_l_2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_roll"
+    type="revolute">
+    <origin
+      xyz="0.019176 -0.004514 0.017052"
+      rpy="-1.5708 1.2904 -1.8017" />
+    <parent
+      link="bearing_roll" />
+    <child
+      link="hip_l_2" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-0.384"
+      upper="0.384"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="upper_leg_right">
+    <inertial>
+      <origin
+        xyz="0.030473 -0.009603 0.018536"
+        rpy="0 0 0" />
+      <mass
+        value="0.083426" />
+      <inertia
+        ixx="1.7723E-05"
+        ixy="6.5877E-09"
+        ixz="-8.4703E-22"
+        iyy="1.7977E-05"
+        iyz="-2.1176E-22"
+        izz="1.8334E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/upper_leg_right.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/upper_leg_right.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_hip_pitch"
+    type="revolute">
+    <origin
+      xyz="0.0035607 -0.033813 -0.024"
+      rpy="-1.5708 0.43698 -3.0359" />
+    <parent
+      link="hip_l_2" />
+    <child
+      link="upper_leg_right" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="leg_2">
+    <inertial>
+      <origin
+        xyz="-0.034959 -0.019313 -0.013313"
+        rpy="0 0 0" />
+      <mass
+        value="0.045494" />
+      <inertia
+        ixx="7.7902E-06"
+        ixy="-2.324E-06"
+        ixz="6.1928E-09"
+        iyy="1.1243E-05"
+        iyz="3.1142E-09"
+        izz="1.0335E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/leg_2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/leg_2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_knee"
+    type="revolute">
+    <origin
+      xyz="0.051881 -0.031999 0"
+      rpy="3.1416 0 3.1416" />
+    <parent
+      link="upper_leg_right" />
+    <child
+      link="leg_2" />
+    <axis
+      xyz="0.180239 -0.380896 -0.906881" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="ankle_right">
+    <inertial>
+      <origin
+        xyz="-0.0092602 -0.0095372 -0.0195"
+        rpy="0 0 0" />
+      <mass
+        value="0.023715" />
+      <inertia
+        ixx="8.1401E-06"
+        ixy="1.4305E-06"
+        ixz="2.647E-22"
+        iyy="6.1379E-06"
+        iyz="0"
+        izz="5.0577E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/ankle_right.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/ankle_right.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_ankle"
+    type="revolute">
+    <origin
+      xyz="-0.047618 -0.023946 0.00445"
+      rpy="0 0 0" />
+    <parent
+      link="leg_2" />
+    <child
+      link="ankle_right" />
+    <axis
+      xyz="-0.180239 0.380896 0.906881" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="neck">
+    <inertial>
+      <origin
+        xyz="0.0060253 0.038279 0.019629"
+        rpy="0 0 0" />
+      <mass
+        value="0.085354" />
+      <inertia
+        ixx="2.2401E-05"
+        ixy="-1.4588E-06"
+        ixz="-1.6411E-21"
+        iyy="1.3363E-05"
+        iyz="2.7529E-21"
+        izz="1.8394E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/neck.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/neck.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="neck_pitch"
+    type="revolute">
+    <origin
+      xyz="-0.11753 0.16438 0.017486"
+      rpy="0.30093 0 -0.080047" />
+    <parent
+      link="base_link" />
+    <child
+      link="neck" />
+    <axis
+      xyz="0 0 -1" />
+    <limit
+      lower="-1.5708"
+      upper="1.0472"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="neck_pitch">
+    <inertial>
+      <origin
+        xyz="-0.0063834 0.013031 -0.019"
+        rpy="0 0 0" />
+      <mass
+        value="0.0061001" />
+      <inertia
+        ixx="1.8453E-06"
+        ixy="1.0975E-07"
+        ixz="1.4558E-22"
+        iyy="1.675E-06"
+        iyz="-1.5882E-22"
+        izz="6.6543E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/neck_pitch.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/neck_pitch.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="head_pitch"
+    type="revolute">
+    <origin
+      xyz="0.012051 0.076557 0.000255"
+      rpy="-3.1416 0 -3.1416" />
+    <parent
+      link="neck" />
+    <child
+      link="neck_pitch" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-1.5708"
+      upper="1.5708"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="yaw_roll_motion">
+    <inertial>
+      <origin
+        xyz="-0.002532 0.0088067 0.019573"
+        rpy="0 0 0" />
+      <mass
+        value="0.051243" />
+      <inertia
+        ixx="1.4551E-05"
+        ixy="1.0047E-06"
+        ixz="1.1087E-07"
+        iyy="9.3889E-06"
+        iyz="-3.5674E-07"
+        izz="1.3564E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/yaw_roll_motion.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/yaw_roll_motion.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="head_yaw"
+    type="revolute">
+    <origin
+      xyz="-0.010388 0.021207 -0.019"
+      rpy="-1.5708 -0.13569 0.4555" />
+    <parent
+      link="neck_pitch" />
+    <child
+      link="yaw_roll_motion" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-2.9671"
+      upper="2.9671"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+  <link
+    name="jaw_soft">
+    <inertial>
+      <origin
+        xyz="-0.0053623 0.0068753 -0.00017064"
+        rpy="0 0 0" />
+      <mass
+        value="0.11741" />
+      <inertia
+        ixx="0.00016779"
+        ixy="-1.2997E-05"
+        ixz="-7.2514E-06"
+        iyy="0.00013205"
+        iyz="1.9677E-06"
+        izz="0.00011434" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/jaw_soft.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.69804 0.69804 0.69804 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://open_duck/meshes/jaw_soft.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="head_roll"
+    type="revolute">
+    <origin
+      xyz="0.018587 0.00099513 0.01774"
+      rpy="1.5708 1.2979 1.7346" />
+    <parent
+      link="yaw_roll_motion" />
+    <child
+      link="jaw_soft" />
+    <axis
+      xyz="0 0 1" />
+    <limit
+      lower="-0.4363"
+      upper="0.4363"
+      effort="1.5"
+      velocity="3.0" />
+  </joint>
+</robot>

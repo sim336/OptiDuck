@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>疯狂小鸡 · SolidWorks → URDF 可视化生成向导</title>
+<style>
+  :root {
+    --bg: #131519; --bg2: #1b1e24; --bg3: #232830; --line: #2e343d;
+    --txt: #dfe5ec; --dim: #8b94a1; --acc: #4da3ff; --acc2: #ff7a59;
+    --ok: #57c98f; --warn: #e6b64c;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--txt); display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+    background: var(--bg2); border-bottom: 1px solid var(--line); flex: 0 0 auto; flex-wrap: wrap;
+  }
+  header h1 { font-size: 14px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  .spacer { flex: 1; }
+  .btn {
+    background: var(--bg3); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; user-select: none;
+  }
+  .btn:hover { border-color: var(--acc); }
+  .btn.primary { background: #1d2b3d; border-color: #2b4a6b; color: var(--acc); }
+  .btn.next { background: #1c332a; border-color: #2b5a44; color: var(--ok); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  label.tgl { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--dim); user-select: none; cursor: pointer; }
+  label.tgl input { accent-color: var(--acc); }
+
+  #steps {
+    display: flex; gap: 0; background: var(--bg2); border-bottom: 1px solid var(--line);
+    flex: 0 0 auto; padding: 0;
+  }
+  .step {
+    flex: 1; text-align: center; padding: 8px 4px; font-size: 12px; color: var(--dim);
+    border-bottom: 3px solid transparent; cursor: pointer; user-select: none; position: relative;
+  }
+  .step .no { display: inline-block; width: 18px; height: 18px; line-height: 18px; border-radius: 50%;
+    background: var(--bg3); border: 1px solid var(--line); font-size: 10px; margin-right: 5px; }
+  .step.active { color: var(--acc); border-bottom-color: var(--acc); }
+  .step.active .no { background: var(--acc); color: #fff; border-color: var(--acc); }
+  .step.done { color: var(--ok); }
+  .step.done .no { background: var(--ok); color: #fff; border-color: var(--ok); }
+
+  #main { display: flex; flex: 1; min-height: 0; }
+  #viewport { position: relative; flex: 1; min-width: 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #hud {
+    position: absolute; top: 10px; left: 10px; pointer-events: none;
+    background: rgba(16,18,22,.75); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 12px; font-size: 12px; line-height: 1.6; backdrop-filter: blur(3px); max-width: 320px;
+  }
+  #status { position: absolute; bottom: 10px; left: 10px; pointer-events: none; color: var(--dim);
+    font-size: 11px; background: rgba(16,18,22,.6); border-radius: 6px; padding: 4px 10px; }
+  aside {
+    flex: 0 0 420px; background: var(--bg2); border-left: 1px solid var(--line);
+    overflow-y: auto; padding: 12px 14px 20px;
+  }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--acc); margin-bottom: 6px; }
+  .hint { font-size: 11.5px; color: var(--dim); line-height: 1.6; margin: 4px 0 10px; }
+  .hint b { color: var(--txt); }
+  .file-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .file-item {
+    display: flex; align-items: center; gap: 6px; padding: 6px 8px; border: 1px solid var(--line);
+    border-radius: 6px; background: var(--bg3); font-size: 11.5px; cursor: pointer; user-select: none;
+  }
+  .file-item:hover { border-color: var(--acc); }
+  .file-item.sel { border-color: var(--acc); background: #1d2b3d; }
+  .file-item input { accent-color: var(--acc); }
+  .file-item .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: Consolas, monospace; }
+  .file-item .sz { color: var(--dim); font-size: 10px; }
+  .field { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  .field label { width: 60px; font-size: 11px; color: var(--dim); flex: 0 0 auto; }
+  .field select, .field input[type=text], .field input[type=number] {
+    flex: 1; min-width: 0; background: var(--bg); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 5px; padding: 4px 6px; font-size: 12px; font-family: Consolas, monospace;
+  }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--acc); }
+  .field .unit { font-size: 10px; color: var(--dim); width: 20px; }
+  .row3 { display: flex; gap: 6px; }
+  .row3 .field { flex: 1; }
+  .row3 .field label { width: 16px; font-size: 11px; color: var(--dim); }
+  details { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg3); overflow: hidden; }
+  details > summary { cursor: pointer; list-style: none; padding: 7px 10px; font-size: 12px; font-weight: 600;
+    color: var(--dim); display: flex; justify-content: space-between; align-items: center; user-select: none; }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] > summary::after { content: "▾"; } details > summary::after { content: "▸"; color: var(--dim); }
+  .jt { padding: 7px 10px; border-top: 1px solid var(--line); }
+  .jt .jt-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .jt-name { font-family: Consolas, monospace; font-size: 12px; color: var(--txt); cursor: pointer; }
+  .jt-name:hover { color: var(--acc); }
+  .jt-name.sel { color: var(--acc); font-weight: 700; }
+  .tree-line { font-family: Consolas, monospace; font-size: 12px; line-height: 1.9; color: var(--txt); white-space: pre; }
+  .tree-line .sel { color: var(--acc); font-weight: 700; background: #1d2b3d; }
+  .tree-line .root { color: var(--ok); }
+  .nav { display: flex; gap: 8px; margin-top: 12px; }
+  .nav .btn { flex: 1; padding: 8px; font-size: 13px; }
+  #saveMsg { font-size: 11px; color: var(--ok); padding: 6px 2px; }
+  #saveMsg.err { color: var(--acc2); }
+  .mono { font-family: Consolas, monospace; }
+  pre.out { background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 8px;
+    font-size: 10.5px; max-height: 200px; overflow: auto; color: var(--txt); white-space: pre-wrap; word-break: break-all; }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.min.js",
+    "three/addons/": "./vendor/addons/"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="err" style="display:none;position:fixed;inset:0;z-index:50;background:var(--bg);color:var(--acc2);align-items:center;justify-content:center;text-align:center;padding:30px"></div>
+  <header>
+    <h1>🧭 SolidWorks → URDF 可视化生成向导</h1>
+    <span class="sub" id="hdrInfo">导入 STL 零件 → 定义关节 → 生成 URDF</span>
+    <div class="spacer"></div>
+    <label class="tgl"><input type="checkbox" id="showAxes" checked /> 关节轴/坐标系</label>
+    <label class="tgl"><input type="checkbox" id="showGrid" checked /> 网格</label>
+    <button class="btn" id="btnUp">世界轴: Z↑</button>
+    <button class="btn" id="btnFit">适应视角</button>
+  </header>
+  <div id="steps">
+    <div class="step active" data-step="1"><span class="no">1</span>导入零件</div>
+    <div class="step" data-step="2"><span class="no">2</span>设根 link</div>
+    <div class="step" data-step="3"><span class="no">3</span>搭关节树</div>
+    <div class="step" data-step="4"><span class="no">4</span>关节参数</div>
+    <div class="step" data-step="5"><span class="no">5</span>导出 URDF</div>
+  </div>
+  <div id="main">
+    <div id="viewport">
+      <canvas id="gl"></canvas>
+      <div id="hud"></div>
+      <div id="status">向导 · 左侧实时 3D 预览</div>
+    </div>
+    <aside id="panel"></aside>
+  </div>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

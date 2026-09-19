@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Board Status</title>
+<style>
+  :root { --card-bg:#1e1e2e; --text:#cdd6f4; --muted:#a6adc8; --accent:#89b4fa;
+          --red:#f38ba8; --green:#a6e3a1; --yellow:#f9e2af; --bg:#11111b; }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg);
+         color:var(--text); padding:16px; }
+  h1 { font-size:18px; margin-bottom:4px; }
+  .sub { color:var(--muted); font-size:12px; margin-bottom:16px; }
+  .banner { display:none; padding:10px 12px; border-radius:8px; margin-bottom:12px;
+            font-size:14px; background:rgba(243,139,168,.15); color:var(--red); }
+  .banner.show { display:block; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+          gap:10px; }
+  .card { background:var(--card-bg); border-radius:10px; padding:14px; }
+  .card .label { color:var(--muted); font-size:12px; margin-bottom:6px; }
+  .card .value { font-size:22px; font-weight:600; }
+  .card .extra { color:var(--muted); font-size:12px; margin-top:4px; }
+  .bar { height:6px; border-radius:3px; background:#313244; margin-top:8px; overflow:hidden; }
+  .bar > div { height:100%; border-radius:3px; background:var(--accent); transition:width .5s; }
+  .full { grid-column:1 / -1; }
+  .tbl { width:100%; border-collapse:collapse; font-size:13px; }
+  .tbl td { padding:6px 8px; color:var(--muted); }
+  .tbl td:last-child { color:var(--text); text-align:right; }
+  .footer { margin-top:16px; color:var(--muted); font-size:11px; text-align:center; }
+  .danger { color:var(--red); } .warn { color:var(--yellow); }
+</style>
+</head>
+<body>
+  <h1>Board Status</h1>
+  <div class="sub">Radxa ZERO 3W</div>
+  <div id="banner" class="banner">连接中断，正在重试…</div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">温度</div>
+      <div id="temp" class="value">--</div>
+    </div>
+    <div class="card">
+      <div class="label">CPU</div>
+      <div id="cpu" class="value">--</div>
+      <div class="bar"><div id="cpuBar" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="label">内存</div>
+      <div id="mem" class="value">--</div>
+      <div class="bar"><div id="memBar" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="label">磁盘</div>
+      <div id="disk" class="value">--</div>
+      <div class="bar"><div id="diskBar" style="width:0%"></div></div>
+    </div>
+    <div class="card">
+      <div class="label">负载 1/5/15</div>
+      <div id="load" class="value" style="font-size:17px">--</div>
+    </div>
+    <div class="card">
+      <div class="label">运行时长</div>
+      <div id="uptime" class="value" style="font-size:17px">--</div>
+    </div>
+    <div class="card full">
+      <div class="label">设备信息</div>
+      <table class="tbl">
+        <tr><td>主机名</td><td id="host">--</td></tr>
+        <tr><td>IP</td><td id="ips">--</td></tr>
+        <tr><td>最后更新</td><td id="ts">--</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="footer">每 2.5 秒刷新</div>
+
+<script>
+(function(){
+  var baseURL = "";
+  // WebView 覆盖接口：宿主注入全局变量 BOARD_API 以使用远端地址
+  if (window.BOARD_API) baseURL = window.BOARD_API;
+
+  function fmt(t){ return (t/1024/1024/1024).toFixed(1)+" GB"; }
+  function fmtUptime(s){
+    var d=Math.floor(s/86400), h=Math.floor(s%86400/3600), m=Math.floor(s%3600/60);
+    var parts=[];
+    if(d>0)parts.push(d+"d"); if(h>0)parts.push(h+"h"); if(m>0)parts.push(m+"m");
+    return parts.join(" ") || "0m";
+  }
+
+  function fill(d){
+    document.getElementById("host").textContent = d.hostname||"--";
+    document.getElementById("ips").textContent = (d.ips||[]).join(", ")||"--";
+
+    var temp=d.temp;
+    var t=document.getElementById("temp");
+    t.textContent = temp!=null ? temp+" \u2103" : "--";
+    if(temp!=null){ t.style.color = temp>80?"var(--red)":(temp>70?"var(--yellow)":"inherit"); }
+
+    var cpu=d.cpu_percent!=null?Math.round(d.cpu_percent):null;
+    var c=document.getElementById("cpu");
+    c.textContent = cpu!=null?cpu+"%":"--";
+    if(cpu!=null){ c.style.color = cpu>90?"var(--red)":(cpu>70?"var(--yellow)":"inherit"); }
+    document.getElementById("cpuBar").style.width=(cpu!=null?cpu:0)+"%";
+
+    var mu=d.mem_used,mt=d.mem_total;
+    var m=document.getElementById("mem");
+    m.textContent = (mu&&mt)? fmt(mt)+" "+(mu/mt*100).toFixed(0)+"%":"--";
+    m.style.color = (mu&&mt&&mu/mt>0.9)?"var(--red)":"inherit";
+    document.getElementById("memBar").style.width = (mu&&mt)?(mu/mt*100)+"%":"0%";
+    document.getElementById("memBar").style.background = (mu&&mt&&mu/mt>0.9)?"var(--red)":"var(--accent)";
+
+    var du=d.disk_used,dt=d.disk_total;
+    var dd=document.getElementById("disk");
+    dd.textContent = (du&&dt)? fmt(dt)+" 共 "+fmt(dt-du)+" 剩":"--";
+    document.getElementById("diskBar").style.width = (du&&dt)?(du/dt*100)+"%":"0%";
+
+    document.getElementById("load").textContent = d.load?d.load.join(" / "):"--";
+    document.getElementById("uptime").textContent = d.uptime_s?fmtUptime(d.uptime_s):"--";
+    document.getElementById("ts").textContent = d.ts?new Date(d.ts*1000).toLocaleTimeString():"--";
+  }
+
+  function poll(){
+    fetch(baseURL+"/api/status",{cache:"no-store"})
+      .then(function(r){ if(!r.ok) throw new Error("http "+r.status); return r.json(); })
+      .then(function(d){
+        document.getElementById("banner").classList.remove("show");
+        fill(d);
+      })
+      .catch(function(){
+        document.getElementById("banner").classList.add("show");
+      });
+  }
+  poll();
+  setInterval(poll, 2500);
+})();
+</script>
+</body>
+</html>

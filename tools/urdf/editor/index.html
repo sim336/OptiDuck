@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>疯狂小鸡 · SolidWorks URDF 可视化编辑器</title>
+<style>
+  :root {
+    --bg: #131519; --bg2: #1b1e24; --bg3: #232830; --line: #2e343d;
+    --txt: #dfe5ec; --dim: #8b94a1; --acc: #4da3ff; --acc2: #ff7a59;
+    --ok: #57c98f; --warn: #e6b64c;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--txt); display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+    background: var(--bg2); border-bottom: 1px solid var(--line); flex: 0 0 auto;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 14px; margin: 0; font-weight: 600; }
+  header .sub { color: var(--dim); font-size: 12px; }
+  .spacer { flex: 1; }
+  .btn {
+    background: var(--bg3); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 6px; padding: 5px 12px; font-size: 12px; cursor: pointer; user-select: none;
+  }
+  .btn:hover { border-color: var(--acc); }
+  .btn.primary { background: #1d2b3d; border-color: #2b4a6b; color: var(--acc); }
+  .btn.save { background: #1c332a; border-color: #2b5a44; color: var(--ok); }
+  label.tgl { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--dim); user-select: none; cursor: pointer; }
+  label.tgl input { accent-color: var(--acc); }
+  #main { display: flex; flex: 1; min-height: 0; }
+  #viewport { position: relative; flex: 1; min-width: 0; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #hud {
+    position: absolute; top: 10px; left: 10px; pointer-events: none;
+    background: rgba(16,18,22,.75); border: 1px solid var(--line); border-radius: 8px;
+    padding: 8px 12px; font-size: 12px; line-height: 1.6; backdrop-filter: blur(3px);
+    max-width: 340px;
+  }
+  #hud b { color: var(--acc); }
+  #status {
+    position: absolute; bottom: 10px; left: 10px; pointer-events: none; color: var(--dim);
+    font-size: 11px; background: rgba(16,18,22,.6); border-radius: 6px; padding: 4px 10px;
+  }
+  aside {
+    flex: 0 0 430px; background: var(--bg2); border-left: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .tabs { display: flex; border-bottom: 1px solid var(--line); flex: 0 0 auto; }
+  .tab {
+    flex: 1; padding: 8px 6px; font-size: 12px; text-align: center; cursor: pointer;
+    color: var(--dim); border-bottom: 2px solid transparent; user-select: none;
+  }
+  .tab.active { color: var(--acc); border-bottom-color: var(--acc); }
+  .tab-body { flex: 1; overflow-y: auto; padding: 10px 12px 20px; min-height: 0; }
+  details { margin-bottom: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg3); overflow: hidden; }
+  details > summary {
+    cursor: pointer; list-style: none; padding: 7px 10px; font-size: 12px; font-weight: 600;
+    color: var(--dim); display: flex; justify-content: space-between; align-items: center; user-select: none;
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  details[open] > summary::after { content: "▾"; }
+  details > summary::after { content: "▸"; color: var(--dim); font-size: 10px; }
+  .jt { padding: 7px 10px; border-top: 1px solid var(--line); }
+  .jt.sel { background: #1d2b3d; }
+  .jt-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .jt-name { font-family: Consolas, monospace; font-size: 12px; color: var(--txt); cursor: pointer; }
+  .jt-name:hover { color: var(--acc); }
+  .jt-name.sel { color: var(--acc); font-weight: 700; }
+  .jt-axis { color: var(--dim); font-size: 10.5px; font-family: Consolas, monospace; }
+  .field { display: flex; align-items: center; gap: 6px; margin: 4px 0; }
+  .field label { width: 52px; font-size: 11px; color: var(--dim); flex: 0 0 auto; }
+  .field input[type=number] {
+    flex: 1; min-width: 0; background: var(--bg); color: var(--txt); border: 1px solid var(--line);
+    border-radius: 5px; padding: 4px 6px; font-size: 12px; font-family: Consolas, monospace;
+  }
+  .field input[type=number]:focus { outline: none; border-color: var(--acc); }
+  .field .unit { font-size: 10px; color: var(--dim); width: 22px; flex: 0 0 auto; }
+  .row3 { display: flex; gap: 6px; }
+  .row3 .field { flex: 1; }
+  .row3 .field label { width: 14px; font-size: 11px; color: var(--dim); }
+  .section-title { font-size: 12px; font-weight: 600; color: var(--acc); margin: 12px 0 6px; }
+  .hint { font-size: 11px; color: var(--dim); line-height: 1.6; margin: 4px 0 8px; }
+  .mirror-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: Consolas, monospace; }
+  .mirror-table td, .mirror-table th { padding: 3px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+  .mirror-table .bad { color: var(--acc2); }
+  .mirror-table .ok { color: var(--ok); }
+  #saveMsg { font-size: 11px; color: var(--ok); padding: 6px 2px; }
+  #saveMsg.err { color: var(--acc2); }
+  .link-mass { font-size: 11px; color: var(--dim); }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three.module.min.js",
+    "three/addons/": "./vendor/addons/"
+  }
+}
+</script>
+</head>
+<body>
+  <div id="err" style="display:none;position:fixed;inset:0;z-index:50;background:var(--bg);color:var(--acc2);align-items:center;justify-content:center;text-align:center;padding:30px"></div>
+  <header>
+    <h1>🛠 Open Duck · URDF 可视化编辑器</h1>
+    <span class="sub" id="hdrInfo">加载中…</span>
+    <div class="spacer"></div>
+    <label class="tgl"><input type="checkbox" id="showAxes" checked /> 关节轴/坐标系</label>
+    <label class="tgl"><input type="checkbox" id="showGrid" checked /> 网格</label>
+    <label class="tgl"><input type="checkbox" id="wireframe" /> 线框</label>
+    <label class="tgl"><input type="checkbox" id="transparent" /> 半透明</label>
+    <button class="btn" id="btnUp">世界轴: Z↑</button>
+    <button class="btn" id="btnFit">适应视角</button>
+    <button class="btn primary" id="btnHome">HOME 复位</button>
+    <button class="btn save" id="btnSave">💾 导出并保存 URDF</button>
+  </header>
+  <div id="main">
+    <div id="viewport">
+      <canvas id="gl"></canvas>
+      <div id="hud"></div>
+      <div id="status">点击左侧关节名选中 → 右侧调整位置/坐标系/轴/限位 · 实时更新 · 可保存为 open_duck_fixed.urdf</div>
+    </div>
+    <aside>
+      <div class="tabs">
+        <div class="tab active" data-tab="joints">关节参数</div>
+        <div class="tab" data-tab="inertia">质量/惯量</div>
+        <div class="tab" data-tab="mirror">左右对称诊断</div>
+        <div class="tab" data-tab="help">说明</div>
+      </div>
+      <div class="tab-body" id="tab-joints"></div>
+      <div class="tab-body" id="tab-inertia" style="display:none"></div>
+      <div class="tab-body" id="tab-mirror" style="display:none"></div>
+      <div class="tab-body" id="tab-help" style="display:none"></div>
+    </aside>
+  </div>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>

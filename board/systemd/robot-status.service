@@ -1,0 +1,13 @@
+[Unit]
+Description=Robot status HTTP service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/radxa/robot_status.py
+Restart=always
+RestartSec=3
+User=radxa
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,161 @@
+diff --git a/src/mjlab_microduck/actuator/friction_dr_bam.py b/src/mjlab_microduck/actuator/friction_dr_bam.py
+index 5215017..a165fea 100644
+--- a/src/mjlab_microduck/actuator/friction_dr_bam.py
++++ b/src/mjlab_microduck/actuator/friction_dr_bam.py
+@@ -21,6 +21,7 @@ import dataclasses
+ from dataclasses import dataclass
+ 
+ import torch
++from bam.feetech.actuator import STS3215Actuator
+ from bam.mjlab import BamActuator, BamActuatorCfg
+ from mjlab.actuator.actuator import ActuatorCmd
+ 
+@@ -34,6 +35,19 @@ class FrictionDRBamActuator(BamActuator):
+         self.friction_scale = torch.ones_like(self.kp_scale)
+         self.default_friction_scale = self.friction_scale.clone()
+ 
++        # STS3215 firmware max-velocity slew limiter: bam's STS3215Actuator
++        # overrides compute_control() and tracks a smoothed internal target
++        # ``q_target_smooth``, but only initializes it in the hardware path
++        # (load_log). On the mjlab path the attribute is missing -> AttributeError
++        # on the first compute(). Seed it per-env-per-joint at the current joint
++        # position so the first command has no initial slew jump. Reset-on-episode
++        # is a P2 fidelity refinement; a stale target only causes a brief
++        # transient, not instability.
++        act = self._bam_model.actuator
++        if isinstance(act, STS3215Actuator):
++            qpos = self._as_tensor(self._data.qpos)  # (N, nv)
++            act.q_target_smooth = qpos[:, self._dof_ids].clone()  # (N, J)
++
+     def _compute_friction_budget(
+         self,
+         motor_torque: torch.Tensor,
+diff --git a/src/mjlab_microduck/tasks/__init__.py b/src/mjlab_microduck/tasks/__init__.py
+index 9e69fac..9247d42 100644
+--- a/src/mjlab_microduck/tasks/__init__.py
++++ b/src/mjlab_microduck/tasks/__init__.py
+@@ -268,3 +268,28 @@ for _task_id, _make_cfg, _kw, _rl_cfg, _robot_cfg in _BACKLASH_TASKS:
+         rl_cfg=_rl_cfg,
+         runner_cls=MicroduckOnPolicyRunner,
+     )
++
++# CrazyChick jump — 疯狂小鸡 jump 任务族（阶段 1：平地行走 + EDF 允许）。
++# 新契约：动作 15D（14 joint + edf_duty）、观测 62D（61D velocity 契约 + 上帧 edf_cmd）。
++# 仅疯狂小鸡 jump 策略族使用；microduck 保留任务仍走 61D/14D 老契约。
++from .microduck_jump_env_cfg import make_microduck_jump_env_cfg
++
++register_mjlab_task(
++    task_id="Mjlab-Jump-Flat-CrazyChick",
++    env_cfg=make_microduck_jump_env_cfg(),
++    play_env_cfg=make_microduck_jump_env_cfg(play=True),
++    rl_cfg=MicroduckRlCfg,
++    runner_cls=MicroduckOnPolicyRunner,
++)
++
++# Open Duck — SolidWorks 导出形态（open_duck_walk.xml）。无 EDF：纯关节控制，
++# velocity 配方，动作 14D / 观测 61D（与 microduck velocity 契约一致）。
++from .microduck_open_duck_env_cfg import make_open_duck_velocity_env_cfg
++
++register_mjlab_task(
++    task_id="Mjlab-Velocity-Flat-OpenDuck",
++    env_cfg=make_open_duck_velocity_env_cfg(),
++    play_env_cfg=make_open_duck_velocity_env_cfg(play=True),
++    rl_cfg=MicroduckRlCfg,
++    runner_cls=MicroduckOnPolicyRunner,
++)
+diff --git a/src/mjlab_microduck/tasks/microduck_roller_standup_env_cfg.py b/src/mjlab_microduck/tasks/microduck_roller_standup_env_cfg.py
+index 872ad8c..f5e27bf 100644
+--- a/src/mjlab_microduck/tasks/microduck_roller_standup_env_cfg.py
++++ b/src/mjlab_microduck/tasks/microduck_roller_standup_env_cfg.py
+@@ -91,23 +91,22 @@ def _resolve_play_face_up():
+         print(f"[roller_standup] STANDUP_PLAY_FACE_UP='{raw}' invalide -> défaut {PLAY_FACE_UP}")
+         return PLAY_FACE_UP
+ 
+-# ── Indices de joints — les roues passives sont INTERCALÉES ───────────────────
+-# Ordre réel du modèle rollers (18 joints après le free-joint), vérifié dans
+-# MuJoCo via get_walk_rollers_spec().compile() :
+-#   0-4   left_hip_yaw, left_hip_roll, left_hip_pitch, left_knee, left_ankle
+-#   5-6   passive_LF_wheel, passive_LR_wheel
+-#   7-10  neck_pitch, head_pitch, head_yaw, head_roll
+-#   11-15 right_hip_yaw, right_hip_roll, right_hip_pitch, right_knee, right_ankle
+-#   16-17 passive_RF_wheel, passive_RR_wheel
+-# Le standup utilise [0-4, 9-13] / [5-8] : ce sont les indices du modèle SANS
+-# roues, ils ne valent PAS ici. Verrouillé par tests/test_roller_standup_cfg.py.
++# ── Indices de joints — vue « 14 servos » (les roues passives exclues) ───────
++# Les récompenses de pose consomment _servo_joint_pos / _servo_joint_ids
++# (mdp.py), qui filtrent r"^(?!passive_).*" : la vue indexée est donc le modèle
++# SANS roues, dans l'ordre canonique 14 servos (left_hip..left_ankle 0-4,
++# neck/head 5-8, right_hip..right_ankle 9-13) — les mêmes indices que standup.
++# Dans l'ordre BRUT du modèle rollers (18 joints, roues intercalées) ces joints
++# sont 0-4 / 7-10 / 11-15 ; y indexer (_LEG_JOINTS = [0-4, 11-15]) déborde de la
++# vue 14 servos → CUDA index-out-of-bounds dans pose_target_match (vu au smoke).
++# Verrouillé par tests/test_roller_standup_cfg.py.
+ #
+ # Seul _LEG_JOINTS est consommé (par les récompenses de pose). _NECK_JOINTS et
+ # _WHEEL_JOINTS servent à la documentation et au test d'indices : le cou est
+ # résolu par NOM (neck_joint_pos_l2 appelle find_joints(r".*(neck|head).*") à
+ # chaque pas) et les roues par la regex ^passive_.*.
+-_LEG_JOINTS   = [0, 1, 2, 3, 4, 11, 12, 13, 14, 15]
+-_NECK_JOINTS  = [7, 8, 9, 10]
++_LEG_JOINTS   = [0, 1, 2, 3, 4, 9, 10, 11, 12, 13]
++_NECK_JOINTS  = [5, 6, 7, 8]
+ _WHEEL_JOINTS = [5, 6, 16, 17]
+ 
+ # Récompenses de PATINAGE de l'env roller : aucun sens quand on est par terre.
+diff --git a/tests/test_roller_standup_cfg.py b/tests/test_roller_standup_cfg.py
+index 9d8d558..8d98755 100644
+--- a/tests/test_roller_standup_cfg.py
++++ b/tests/test_roller_standup_cfg.py
+@@ -120,11 +120,15 @@ def test_task_is_registered():
+ 
+ 
+ def test_joint_indices_match_actual_roller_model():
+-    """Verrou : les roues passives sont intercalées dans l'ordre des joints.
+-
+-    Réutiliser les indices du standup ([0-4, 9-13]) donnerait des récompenses
+-    qui pointent sur des roues. Ce test compile le vrai MjSpec du robot rollers
+-    et vérifie les noms aux indices utilisés. Pur CPU, pas de sim.
++    """Verrou : les récompenses indexent la vue « 14 servos » (passive_ exclues).
++
++    mdp.pose_target_match / pose_l1_penalty / standing_composite_score lisent
++    _servo_joint_pos, qui filtre r"^(?!passive_).*" : leurs joint_indices sont
++    donc exprimés dans l'ordre canonique SANS roues (left leg 0-4, neck 5-8,
++    right leg 9-13) — les mêmes que le standup. _WHEEL_JOINTS, lui, est exprimé
++    dans l'ordre BRUT du modèle rollers (18 joints, roues intercalées). Ce test
++    compile le vrai MjSpec et vérifie les noms dans chaque vue. Pur CPU, pas de
++    sim.
+     """
+     import mujoco
+ 
+@@ -141,19 +145,27 @@ def test_joint_indices_match_actual_roller_model():
+         for j in range(model.njnt)
+         if model.jnt_type[j] != mujoco.mjtJoint.mjJNT_FREE
+     ]
++    servo_view = [n for n in articulated if not n.startswith("passive_")]
+ 
+-    assert [articulated[i] for i in _LEG_JOINTS] == [
++    assert [servo_view[i] for i in _LEG_JOINTS] == [
+         "left_hip_yaw", "left_hip_roll", "left_hip_pitch", "left_knee", "left_ankle",
+         "right_hip_yaw", "right_hip_roll", "right_hip_pitch", "right_knee", "right_ankle",
+     ]
+-    assert [articulated[i] for i in _NECK_JOINTS] == [
++    assert [servo_view[i] for i in _NECK_JOINTS] == [
+         "neck_pitch", "head_pitch", "head_yaw", "head_roll",
+     ]
++    # Les roues n'existent QUE dans la vue brute (passive_ filtrées) : indexées
++    # dans l'ordre du modèle rollers, pas dans la vue 14 servos.
+     assert [articulated[i] for i in _WHEEL_JOINTS] == [
+         "passive_LF_wheel", "passive_LR_wheel", "passive_RF_wheel", "passive_RR_wheel",
+     ]
+-    # Aucun recouvrement, et les trois listes couvrent tous les joints.
+-    assert len(set(_LEG_JOINTS) | set(_NECK_JOINTS) | set(_WHEEL_JOINTS)) == len(articulated)
++    # _LEG_JOINTS ∪ _NECK_JOINTS couvre exactement les 14 servos (aucun trou).
++    assert len(set(_LEG_JOINTS) | set(_NECK_JOINTS)) == len(servo_view) == 14
++    # Les 4 roues sont bien les seuls joints exclus de la vue 14 servos.
++    assert len(articulated) == 18
++    assert [n for n in articulated if n.startswith("passive_")] == [
++        "passive_LF_wheel", "passive_LR_wheel", "passive_RF_wheel", "passive_RR_wheel",
++    ]
+ 
+ 
+ def test_recovery_rewards_present_with_expected_weights():
