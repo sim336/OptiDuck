@@ -140,9 +140,10 @@ flowchart TB
 | 路径 | 内容 | 来源 | 许可 |
 |---|---|---|---|
 | [`docs/`](docs/) | 两本实机教程（部署 / 开发）+ 内部草稿 | 自研 | Apache-2.0 |
-| [`tools/urdf/`](tools/urdf/) | URDF / MJCF 可视化工具链（three.js，零依赖前端） | 自研 | Apache-2.0 |
-| [`board/`](board/) | 板端运维：状态服务、远程终端、systemd 单元、蒲公英组网脚本 | 自研 | Apache-2.0 |
+| [`tools/`](tools/) | 自研工具链：`urdf/` 三个可视化工具（three.js 零依赖前端）+ 台架标定与遥测（`ft_regs.py` 舵机寄存器直读/直写、`servo_config_gui.py` 逐舵机配置、`bench_mirror.py` 台架实时镜像、`robotd_telemetry_bridge.py` 遥测转发） | 自研 | Apache-2.0 |
+| [`board/`](board/) | 板端运维：状态服务、远程终端、画面流、systemd 单元、蒲公英组网脚本 | 自研 | Apache-2.0 |
 | [`app/`](app/) | Android 运维 App（Kotlin + Compose） | 自研 | Apache-2.0 |
+| [`imu2uart/`](imu2uart/) | STM32F411 固件：IMU → UART 桥（CubeMX 工程）。只入库自研源码与工程文件，vendor 库（`Drivers` 53 MB / `Middlewares`）与 Keil 编译产物可再生产 | 自研 | Apache-2.0 |
 | [`training/`](training/) | 在上游 RL 仓里做的改动（补丁 + 改动后的文件） | 派生 | 见 NOTICE |
 | [`assets/`](assets/) | 真实截图与仿真渲染帧（**无 AI 生成图**） | 自研 | Apache-2.0 |
 | `joyandai/microduck/` | 上板 Rust 软件栈（子模块） | 上游变体 | Apache-2.0 |
@@ -385,6 +386,11 @@ export ORT_DYLIB_PATH=/usr/local/lib/libonnxruntime.so
 - `microduck_rl`：上游分支 `develop`，本地改动为 HD-1910 台架 bring-up、BAM 作动器参数、
   `air_time` 奖励调参与碰撞配置拆分；另含 Windows 下的彩排控制改造
   （`infer_policy.py` 用 `msvcrt` 替代 Unix 专属的 `termios`，让彩排能在开发机上直接跑）。
+  2026-10-01 又落了 3 个提交：① 供电基准更正到整机 2S（`vin_range` 6.5–8.2、`vin_min` 6.0、
+  `forcerange` 0.97 → 1.51 N·m），并补齐 `GROUND_PICK` / `BACKLASH` / `WALK_BACKLASH` 三处
+  漏掉的 `USE_HD1910` 判断（含两个新导出的 `robot_openmicroduck_*_backlash.xml`）；
+  ② `scene.xml` / `body_server.py` 改指向 OpenMicroDuck 鸭子（此前仿真身体与训练环境不是同一只）；
+  ③ velstand 把零指令站立提为一等交付。详见更新日志 v1.02 / v1.03。
 
 这样 `git log` 能直接看出「哪些是上游的、哪些是我们改的」，
 `git diff upstream/main` 就是全部本地差异。
@@ -424,7 +430,7 @@ git merge upstream/main
 
 | 部分 | 许可 |
 |---|---|
-| 本仓自有内容（`docs/`、`tools/`、`board/`、`app/`、`assets/`） | **Apache-2.0**（[LICENSE](LICENSE)） |
+| 本仓自有内容（`docs/`、`tools/`、`board/`、`app/`、`imu2uart/`、`assets/`） | **Apache-2.0**（[LICENSE](LICENSE)） |
 | `joyandai/microduck`、`microduck_rl` | Apache-2.0 |
 | `OpenMicroDuck` 的 CAD / 图纸 / 文档 | **CC-BY-NC-SA-4.0（禁止商用）** |
 
@@ -444,6 +450,7 @@ git merge upstream/main
 |---|---|---|
 | `hd1910_calibration/` | ~426 MB | HD-1910 舵机台架标定原始 `.log` 轨迹与拟合 `.json` |
 | `model_archive/` | ~405 MB | 训练权重归档（sitstand / stand / velocity） |
+| `logs/` | ~8 MB | 台架 / 分析 / sysid 原始数据（`bench_*.csv`、`analysis_*.csv`、`sysid_*.md`）。本机工作数据，已加进 `.gitignore`，不作为 Release 附件 |
 
 标定数据拟合后的结果已经浓缩进 `microduck_rl/vendor/bam/bam/params/hd1910/*.json`，
 只做仿真训练的话不需要下载原始数据。
@@ -476,6 +483,7 @@ git merge upstream/main
 
 | 版本 | 日期 | 内容 |
 |---|---|---|
+| **v1.03** | 2026-10-01 | **台架工具链、IMU 固件入库，以及 docs 的摄像头记录**。<br>① `tools/` 新增 6 个台架工具（都不是示例代码，是台架上实际在用的）：`ft_regs.py` —— FT-SCS 寄存器直读/直写，起因是 `robot.relax` 报 `torque off`、15 颗舵机全部 ACK 但关节掰不动，绕开 robotd 直读总线后发现 15 颗的 reg40 实测全是 1，那条「已松扭矩」的结论是假的；`servo_config_gui.py` + `servo_progress.json` 逐舵机配置与进度；`bench_mirror.py` 台架只读实时镜像（真机 15 颗 HD-1910 + IMU 映到浏览器 3D，带策略开关与「真·松扭矩」联调按钮）；`robotd_telemetry_bridge.py` 遥测转发；`bench_joint_limits.json` 实测关节限位。<br>② 新增 [`imu2uart/`](imu2uart/) —— STM32F411 的 CubeMX 固件（IMU → UART 桥）。**只收自研源码与工程文件**（`Core/` + `.ioc` + `.mxproject` + Keil 的 `.uvprojx`/`.uvoptx`/`startup`，约 0.2 MB），vendor 库（`Drivers` 53 MB、`Middlewares` 1.3 MB）与 Keil 编译产物（38 MB，另有 7.2 MB `JLinkLog`）全部排除，可由 CubeMX / Keil 再生。<br>③ `logs/` 台架原始数据按仓库既有约定「大体积数据走 Release、不进 git 历史」加入 `.gitignore`。<br>④ `docs/internal` 的零基础教程把摄像头一节从【等硬件】改为【现在能跑】：2026-09-22 已在本机点亮 IMX219（overlay 启用后 probe 成功、`/dev/media0` + `/dev/video0~9` 就位、连续抓流 45 帧 @ 29.96 fps），并更正三处易踩的点 —— Radxa OS 上不用手工编辑 `extlinux.conf`（`u-boot-update` 会把 `/boot/dtbo/` 下所有不带 `.disabled` 的 `.dtbo` 按字母序写进 `fdtoverlays`）；`/boot/dtbo/` 下其实有三个 camera overlay（两个 IMX219 驱动层等价）；别只靠 `dmesg` 验证 —— 它要 sudo，且只证明 sensor probe 成功、不证明链路连通。<br>⑤ `microduck_rl` 另外两个提交：`scene.xml` / `body_server.py` 改指向 OpenMicroDuck 鸭子（此前仿真身体与训练环境不是同一只），velstand 把零指令站立从 25% 侧例提到一等交付（板子上 `stand = "none"`，走路网络是零指令待机的唯一归属者）。 |
 | **v1.02** | 2026-10-01 | **训练侧 HD-1910 一致性与供电基准核查（一轮完整审计的落地）**。<br>① **供电基准更正**：训练配置曾按 "5.0 V 稳压轨（4.75–5.25 V）—— NOT 2S" 建模，那个 5 V 是**摆锤台架的桌面电源**，不是整机。整机是 2S 电池、15 个舵机直接挂在电池上（证据：舵机是 4–8.4 V 器件；`duck-control/src/feetech.rs` 写明 "all 15 servos sit on one pack"；robotd 空电关机阈值 6.6 V，若真是 5 V 每次上电都会关机而它从未触发）。改为 `vin_range=(6.5, 8.2)`、`vin_min=6.0`（`microduck_constants.py`）。模型的出力是 `vin × duty_cycle`，所以 5 V 基准会让仿真舵机比真机**弱 1.48 倍**（7.4/5.0）—— 这正是长期存在的仿真/真机饱和率失配（仿真 21% vs 真机 4.2%）的方向与量级；出力由 0.97 N·m 提到 **1.51 N·m**。<br>② **补齐三处漏改**（此前"换执行器只改一处"的说法是错的）：`MICRODUCK_GROUND_PICK_ROBOT_CFG` 与两个 backlash 配置漏了 `USE_HD1910` 判断，会用**官方 XL330 惯量 + HD-1910 执行器参数**的混搭模型；另新导出 `robot_openmicroduck_{walk,groundcontact}_backlash.xml`（`add_backlash.py` 默认 ±1° 背隙，14 个关节，与官方版结构逐项一致、总质量 812.61 g vs 官方 737.24 g）。rollers 两个配置仍为**已知缺口**，原因写在 `microduck_constants.py` 注释里（OpenMicroDuck 没有带轮子的 CAD 导出）。`publish/manifest.py` 的 `robot.servos` 由 `xl330` 更正为 `hd1910`（该字段在 `docs/policy-manifest.md` 里属 display 字段，daemon 只校验 `robot.model`）。<br>③ **参数归属澄清**：`kt = 0.692 N·m/A` 是**台架空载恒速法实测**（R²=0.998，n=24，6 档转速正反两向各两条），不是规格书值；规格书 0.7358 高约 6%，被独立方法（静态保持法 `kt/R ∈ [0.16, 0.23]`）交叉验证。`kp_fw = 32` 是**真机 reg50 回读**（不是 XL330 的 200，用 200 会硬约 6 倍）。<br>④ **文档更正**：`hd1910_README.md` 全文停留在标定前（描述 `hd1910_m6.json`、kp_fw 200、max_current 1.75、复用 xl330 骨架），已加"已过时"标注 + 估算值/现行值对照表，并保留仍然有效的规格书推导；`mae_report_kpfix.md` 标注为已过时的中间快照（权威记录是 `characterization.json`）；`characterization.json` 的 `supply_voltage_V: 5.0` 与 `note_supply` 标注作废（**数值一字未改**）。<br>⑤ **新增一个已知的显示级不一致**（未改，留档）：`bam/feetech/actuator.py` 的便捷属性 `self.kt = 0.7358` 是规格书默认值，而生效值是模型 JSON 覆盖后的 `model.kt = 0.692`——控制律用的始终是后者，故不影响物理，只可能误导日志读数；`kd` 的 sim 0.346（拟合，`d_scale=4.0`）与真机 reg51 的寄存器值 40 不是同一单位，勿直接对比。 |
 | **v1.01** | 2026-09-22 | **App 打通实时画面（自建 MJPEG，全程不经 mediad）**。① 板端新增 [`board/report_video.py`](board/report_video.py)：GStreamer `v4l2src ! videorate ! videoconvert ! jpegenc ! appsink` 直接抓 `/dev/video0`，以 `multipart/x-mixed-replace` 推流（端口 8072），首包带 token（复用 `/home/radxa/robot_terminal_token`），流水线**懒启动、无客户端 5 s 自动停**，另有 `/snapshot` 单帧与 `/stats` 自检端点；② App 底部导航扩为 **5 个页签**（连接 / 状态 / 画面 / 功能 / 终端，App 版本 2.1.0 → 2.2.0、versionCode 5），新增 [`VideoScreen.kt`](app/app/src/main/java/com/optiduck/board/VideoScreen.kt) 按 SOI/EOI 切帧、逐帧解码上屏，并显示分辨率 / 帧率 / 累计帧 / 单帧大小；功能地图的「视频」区块从占位改为跳转「画面」页，WebRTC 那套指标（bitrate / loss / RTT）明确标注仍未接入；③ **实测**（板子本机 curl 拉流）：4 s 收 **58 帧 ≈ 14.5 fps**、单帧 ≈ **20 KB**（约 2.3 Mbps）、`/snapshot` 落盘为合规 640×480 baseline JPEG 且画面可辨实物（天花板灯管 + 纸箱），无 token 一律 401、无客户端 5 s 后 `/stats` 回到 `running: false`；④ **CPU 实测**（占单核）：无客户端、流水线已停时 **0.0%**，1 个客户端推 640×480@15 时 **≈16%**（≈ 整机 4%），推流期间板子 loadavg 0.11 → 0.51、温度 50.6 → 51.2 °C 基本不动 —— 所以**「连接 / 断开」本身就是开关，默认关，不连时板上零占用**，未再加额外总闸；⑤ 两个坑：PyGObject **不暴露** `GstAppSink.pull_sample` / `try_pull_sample`（GIR 注记把它们隐藏了），只能用 `new-sample` 信号 + `sink.emit("pull-sample")` 取帧；**`/dev/video0` 是独占设备**，第二个抓流进程直接报 `Device '/dev/video0' is busy`，即本服务与官方 mediad / WebRTC **互斥不能并存**。 |
 | **v1.00** | 2026-09-19 | 仓库整体整理为开源项目形态：<br>① 目录重构 —— 教程归 `docs/`、URDF 工具链归 `tools/`、板端运维归 `board/`、Android App 归 `app/`、训练改动归 `training/`、截图与渲染归 `assets/`；<br>② 补齐 `LICENSE`（Apache-2.0）、`NOTICE.md`（分项署名与上游许可）、`.gitignore`；<br>③ 新增真实截图墙（板端看板 / 三个 URDF 工具 / MJCF 预览 / App 四页，均为实际运行截图）；<br>④ 修复状态看板「磁盘」卡片把字节数直接显示的 bug（改为 `xx.x GB 共 xx.x GB 剩`）；<br>⑤ 修复搬迁后工具链的模型路径（viewer / editor / wizard 全部指向仓内路径），并把 `serve.mjs` 的根目录用法写进文档；<br>⑥ 实测并记录板载 ONNX 推理延迟（p50 0.367 ms / 1000 步 / `over_20_ms: 0`）；<br>⑦ App 端到端联调：重新编译 debug APK 装进模拟器，实测「状态页读到板上真实指标 + 终端 WebSocket 带 token 连上并执行 `uname -sr`」，截图与结论一并入库。 |
