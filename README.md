@@ -66,8 +66,8 @@ Radxa ZERO 3W 上跑着自研的 Python 状态服务（systemd 托管，端口 8
 
 ### 移动端：Android 远程运维 App
 
-Kotlin + Jetpack Compose 写的板端运维 App，底部四个页签 —— 连接 / 状态 / 功能 / 终端，
-支持远程状态告警、远程 shell（WebSocket + PTY，带 TAB 补全）与 APK 自更新。
+Kotlin + Jetpack Compose 写的板端运维 App，底部五个页签 —— 连接 / 状态 / 画面 / 功能 / 终端，
+支持远程状态告警、**板端摄像头实时画面（MJPEG）**、远程 shell（WebSocket + PTY，带 TAB 补全）与 APK 自更新。
 
 下面四张是 **Android 模拟器里实际运行 App、并真的连上这块板子** 截的图：
 
@@ -268,10 +268,13 @@ node tools/urdf/serve.mjs 8124 .
 | `robot_status.py` | 健康指标 HTTP 服务（端口 8070，返回 `/api/status` JSON） | `/home/radxa/robot_status.py` |
 | `index.html` | 状态看板的单页前端（深色卡片，2.5 s 轮询） | `/home/radxa/robot_status_index.html` |
 | `report_terminal.py` | WebSocket 远程终端（端口 8071，每次连接 spawn 一个 PTY bash，支持 TAB 补全与颜色） | `/home/radxa/report_terminal.py` |
+| `report_video.py` | 摄像头 MJPEG 服务（端口 8072，`/video` 长连接推 640×480@15 的 JPEG；懒启动，无客户端 5 s 自动停流水线，**不经过 mediad**；`/dev/video0` 独占，不能与 mediad 并存） | `/home/radxa/report_video.py` |
 | `robot_terminal.py` | 终端侧的辅助脚本 | `/home/radxa/robot_terminal.py` |
 | `systemd/robot-status.service` | 状态服务的 systemd 单元 | `/etc/systemd/system/` |
 | `systemd/robot-terminal.service` | 终端服务的 systemd 单元 | `/etc/systemd/system/` |
+| `systemd/robot-video.service` | 画面服务的 systemd 单元 | `/etc/systemd/system/` |
 | `scripts/deploy_status.sh` | 一键部署状态服务到板子 | — |
+| `scripts/deploy_video.sh` | 一键部署画面服务到板子（含出流自检） | — |
 | `scripts/diag_sudo.sh` | 提权环境诊断 | — |
 | `scripts/pgy_*.sh` | 蒲公英（异地组网）客户端的安装 / 登录 / 状态脚本 | — |
 
@@ -473,4 +476,6 @@ git merge upstream/main
 
 | 版本 | 日期 | 内容 |
 |---|---|---|
+| **v1.02** | 2026-10-01 | **训练侧 HD-1910 一致性与供电基准核查（一轮完整审计的落地）**。<br>① **供电基准更正**：训练配置曾按 "5.0 V 稳压轨（4.75–5.25 V）—— NOT 2S" 建模，那个 5 V 是**摆锤台架的桌面电源**，不是整机。整机是 2S 电池、15 个舵机直接挂在电池上（证据：舵机是 4–8.4 V 器件；`duck-control/src/feetech.rs` 写明 "all 15 servos sit on one pack"；robotd 空电关机阈值 6.6 V，若真是 5 V 每次上电都会关机而它从未触发）。改为 `vin_range=(6.5, 8.2)`、`vin_min=6.0`（`microduck_constants.py`）。模型的出力是 `vin × duty_cycle`，所以 5 V 基准会让仿真舵机比真机**弱 1.48 倍**（7.4/5.0）—— 这正是长期存在的仿真/真机饱和率失配（仿真 21% vs 真机 4.2%）的方向与量级；出力由 0.97 N·m 提到 **1.51 N·m**。<br>② **补齐三处漏改**（此前"换执行器只改一处"的说法是错的）：`MICRODUCK_GROUND_PICK_ROBOT_CFG` 与两个 backlash 配置漏了 `USE_HD1910` 判断，会用**官方 XL330 惯量 + HD-1910 执行器参数**的混搭模型；另新导出 `robot_openmicroduck_{walk,groundcontact}_backlash.xml`（`add_backlash.py` 默认 ±1° 背隙，14 个关节，与官方版结构逐项一致、总质量 812.61 g vs 官方 737.24 g）。rollers 两个配置仍为**已知缺口**，原因写在 `microduck_constants.py` 注释里（OpenMicroDuck 没有带轮子的 CAD 导出）。`publish/manifest.py` 的 `robot.servos` 由 `xl330` 更正为 `hd1910`（该字段在 `docs/policy-manifest.md` 里属 display 字段，daemon 只校验 `robot.model`）。<br>③ **参数归属澄清**：`kt = 0.692 N·m/A` 是**台架空载恒速法实测**（R²=0.998，n=24，6 档转速正反两向各两条），不是规格书值；规格书 0.7358 高约 6%，被独立方法（静态保持法 `kt/R ∈ [0.16, 0.23]`）交叉验证。`kp_fw = 32` 是**真机 reg50 回读**（不是 XL330 的 200，用 200 会硬约 6 倍）。<br>④ **文档更正**：`hd1910_README.md` 全文停留在标定前（描述 `hd1910_m6.json`、kp_fw 200、max_current 1.75、复用 xl330 骨架），已加"已过时"标注 + 估算值/现行值对照表，并保留仍然有效的规格书推导；`mae_report_kpfix.md` 标注为已过时的中间快照（权威记录是 `characterization.json`）；`characterization.json` 的 `supply_voltage_V: 5.0` 与 `note_supply` 标注作废（**数值一字未改**）。<br>⑤ **新增一个已知的显示级不一致**（未改，留档）：`bam/feetech/actuator.py` 的便捷属性 `self.kt = 0.7358` 是规格书默认值，而生效值是模型 JSON 覆盖后的 `model.kt = 0.692`——控制律用的始终是后者，故不影响物理，只可能误导日志读数；`kd` 的 sim 0.346（拟合，`d_scale=4.0`）与真机 reg51 的寄存器值 40 不是同一单位，勿直接对比。 |
+| **v1.01** | 2026-09-22 | **App 打通实时画面（自建 MJPEG，全程不经 mediad）**。① 板端新增 [`board/report_video.py`](board/report_video.py)：GStreamer `v4l2src ! videorate ! videoconvert ! jpegenc ! appsink` 直接抓 `/dev/video0`，以 `multipart/x-mixed-replace` 推流（端口 8072），首包带 token（复用 `/home/radxa/robot_terminal_token`），流水线**懒启动、无客户端 5 s 自动停**，另有 `/snapshot` 单帧与 `/stats` 自检端点；② App 底部导航扩为 **5 个页签**（连接 / 状态 / 画面 / 功能 / 终端，App 版本 2.1.0 → 2.2.0、versionCode 5），新增 [`VideoScreen.kt`](app/app/src/main/java/com/optiduck/board/VideoScreen.kt) 按 SOI/EOI 切帧、逐帧解码上屏，并显示分辨率 / 帧率 / 累计帧 / 单帧大小；功能地图的「视频」区块从占位改为跳转「画面」页，WebRTC 那套指标（bitrate / loss / RTT）明确标注仍未接入；③ **实测**（板子本机 curl 拉流）：4 s 收 **58 帧 ≈ 14.5 fps**、单帧 ≈ **20 KB**（约 2.3 Mbps）、`/snapshot` 落盘为合规 640×480 baseline JPEG 且画面可辨实物（天花板灯管 + 纸箱），无 token 一律 401、无客户端 5 s 后 `/stats` 回到 `running: false`；④ **CPU 实测**（占单核）：无客户端、流水线已停时 **0.0%**，1 个客户端推 640×480@15 时 **≈16%**（≈ 整机 4%），推流期间板子 loadavg 0.11 → 0.51、温度 50.6 → 51.2 °C 基本不动 —— 所以**「连接 / 断开」本身就是开关，默认关，不连时板上零占用**，未再加额外总闸；⑤ 两个坑：PyGObject **不暴露** `GstAppSink.pull_sample` / `try_pull_sample`（GIR 注记把它们隐藏了），只能用 `new-sample` 信号 + `sink.emit("pull-sample")` 取帧；**`/dev/video0` 是独占设备**，第二个抓流进程直接报 `Device '/dev/video0' is busy`，即本服务与官方 mediad / WebRTC **互斥不能并存**。 |
 | **v1.00** | 2026-09-19 | 仓库整体整理为开源项目形态：<br>① 目录重构 —— 教程归 `docs/`、URDF 工具链归 `tools/`、板端运维归 `board/`、Android App 归 `app/`、训练改动归 `training/`、截图与渲染归 `assets/`；<br>② 补齐 `LICENSE`（Apache-2.0）、`NOTICE.md`（分项署名与上游许可）、`.gitignore`；<br>③ 新增真实截图墙（板端看板 / 三个 URDF 工具 / MJCF 预览 / App 四页，均为实际运行截图）；<br>④ 修复状态看板「磁盘」卡片把字节数直接显示的 bug（改为 `xx.x GB 共 xx.x GB 剩`）；<br>⑤ 修复搬迁后工具链的模型路径（viewer / editor / wizard 全部指向仓内路径），并把 `serve.mjs` 的根目录用法写进文档；<br>⑥ 实测并记录板载 ONNX 推理延迟（p50 0.367 ms / 1000 步 / `over_20_ms: 0`）；<br>⑦ App 端到端联调：重新编译 debug APK 装进模拟器，实测「状态页读到板上真实指标 + 终端 WebSocket 带 token 连上并执行 `uname -sr`」，截图与结论一并入库。 |

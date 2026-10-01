@@ -964,9 +964,10 @@ scp -r datasets/raw/<a-session> radxa@<robot>:/var/tmp/frames
 
 ## 3. 硬件调试：从体检到动起来
 
-> ⚠️ **本机现状（2026-09）：你手上还没有舵机、摄像头、ToF HAT。** 这一节按"硬件到手后的
-> 完整流程"写，每步都标注**【现在能跑】**还是**【等硬件】**。等硬件到齐，直接照做即可；
-> 现在就能跑的部分（总线体检、日志、排障习惯），建议立刻练手。
+> ⚠️ **本机现状（2026-09）**：**摄像头已到货并点亮**（2026-09-22，IMX219 / 22-pin，见 §3.5）；
+> **舵机、ToF HAT 仍缺**。这一节按"硬件到手后的完整流程"写，每步都标注**【现在能跑】**
+> 还是**【等硬件】**。等硬件到齐，直接照做即可；现在就能跑的部分（总线体检、日志、
+> 排障习惯），建议立刻练手。
 >
 > 核心思想只有一个：**板上的一切硬件都由 7 个 daemon 包了一层接口，你永远从
 > `robotctl` 这一侧观察和操作，不要绕过 daemon 直接摸硬件。** 绕过了，下一层就是
@@ -1156,15 +1157,20 @@ OpenMicroDuck 把采购分成**两个阶段**（`docs/bom.md`）——**别等�
 > - **像素纠错**：OpenMicroDuck `bom.md` 原文写"IMX219，500 万像素"是**误写**——
 >   IMX219 原生 3280×2464 = **808 万**（Pi Cam v2 就是 8MP）；500 万的是 OV5647
 >   （Pi Cam v1，2592×1944），别买错。商品页也佐证：IMX219 款一律标"800 万"。
-> - **本机三道硬件关的实测**：① `/boot/dtbo/` 里有
->   `radxa-zero3-rpi-camera-v2.dtbo`（IMX219）与 `-v1.3`（OV5647）两个 overlay；
+> - **本机三道硬件关的实测**：① `/boot/dtbo/` 里有**三个** camera overlay：
+>   `radxa-zero3-rpi-camera-v2`（IMX219）、`radxa-zero3-radxa-camera-8m`（IMX219）、
+>   `radxa-zero3-rpi-camera-v1.3`（OV5647）；前两个驱动层完全等价，2026-09-22 反编译
+>   dtbo 逐项对比确认，选哪个见 §3.5.1；
 >   ② `/etc/iqfiles/` 里有 `imx219` 的 3A 校准文件，**没有 IMX519**——所以商品页的
 >   "78 度 1600 万 IMX519"直接排除（rkaiq 无校准、无 overlay，起不来）；
 >   ③ mediad 的 sensor mode 钉死 IMX219，OV5647 虽有 overlay/iqfile 但官方原话
 >   "Only the first has ever been used"，不当小白鼠。
 > - **广角款（120°/160°）不推荐**：畸变/鱼眼边缘变形对 320×320 YOLO 检测器减分，且未适配。
-> - 收到后验证见 §3.5：overlay 启用后 `dmesg | grep imx219` 应出现
->   `Model ID 0x0219`，并出现十个左右 `/dev/videoN`。
+> - 收到后验证见 §3.5 的**四级裸验证阶梯**（`/dev/i2c-2` → `2-0010/driver` →
+>   `media-ctl -p -d /dev/media0` → `v4l2-ctl --list-devices`）。⚠️ 别只靠
+>   `dmesg | grep imx219`——**`dmesg` 要 sudo**，而且它只证明 sensor probe 成功、
+>   不证明链路连通。2026-09-22 实测通过后的节点形态是：`/dev/media0` + `/dev/video0~9`
+>   共十个 `/dev/videoN`，另有 `/dev/video-camera0 -> video0` 软链。
 
 **桌面调试版额外**（研发期必须）：
 
@@ -1292,7 +1298,12 @@ HAT 上方 5–20 cm 晃动看矩阵响应。前三步通过但没响应，多�
 **ToF 很费 CPU 的教训**（`tof-on-demand.md` 实测）：depth + head IMU 的采样开销在
 Radxa ZERO 3 上不可忽略。**不用头部 IMU 就保持默认关闭**，省一档 CPU 给 robotd。
 
-### 3.5 摄像头：【等硬件】看世界的眼睛
+### 3.5 摄像头：【现在能跑】看世界的眼睛
+
+> ✅ **2026-09-22 已在本机点亮**（IMX219，22-pin / 0.5 mm 直插，未用转接板）：overlay 启用后
+> `probe` 成功、`/dev/media0` + `/dev/video0~9` 全部就位、连续抓流 45 帧 @ 29.96 fps、
+> 画面可辨认实物。本节流程与回显均为**实测记录**。唯一未验证的是 **3A 色彩校正**
+> （需要 `mediad` 起身，见本节末尾的绿色偏色说明）。
 
 摄像头是"硬件门槛最高"的一环，两个前置条件缺一不可（`docs/project/media-bringup.md`）：
 
@@ -1300,23 +1311,69 @@ Radxa ZERO 3 上不可忽略。**不用头部 IMU 就保持默认关闭**，省�
    `/dev/video*`、dmesg 一片空白，看起来和没接一模一样（rkisp 采集节点只在 sensor
    probe 成功后才出现）。**但启用方式按系统区分，别照抄官方文档的 Armbian 做法**：
 
-   **本机 Radxa OS（Debian 12，实测）**——overlay 是 `/boot/dtbo/` 里的文件，
-   带 `.disabled` 后缀 = 关闭；extlinux.conf 的 `fdtoverlays` 行用**完整路径**引用，
-   不存在 Armbian 那种"overlay_prefix 解析、文件名必须镜像成 `rk3568-` 前缀"的问题
-   （摄像头 overlay 本名就叫 `radxa-zero3-rpi-camera-v2.dtbo`，**不带 rk3568 前缀**）：
+   **本机 Radxa OS（Debian 12，2026-09-22 实测）**——overlay 是 `/boot/dtbo/` 里的文件，
+   带 `.disabled` 后缀 = 关闭。**不用手工编辑 extlinux.conf**：`u-boot-update` 会自动把
+   `/boot/dtbo/` 下**所有不带 `.disabled` 的 `.dtbo`** 全部写进 `fdtoverlays` 行（按文件名
+   字母序）。2026-09-22 实测证据：目录里恰好只有 `rk3568-i2c4-m0` / `rk3568-npu-enable` /
+   `rk3568-uart2-m0` 三个没有 `.disabled`，而 `fdtoverlays` 行里恰好就是这三个。
+   所以**启用 = 改文件名 + 重生成引导配置**两步：
 
    ```bash
-   # ① 去掉 .disabled 后缀启用 overlay（IMX219 / Pi Cam v2）
+   # ① 挑对 overlay（怎么挑见下面 §3.5.1），去掉 .disabled 后缀
    sudo mv /boot/dtbo/radxa-zero3-rpi-camera-v2.dtbo.disabled \
            /boot/dtbo/radxa-zero3-rpi-camera-v2.dtbo
-   # ② 把完整路径追加到 fdtoverlays 行（与已有的 i2c4/npu/uart2 并列，空格分隔）
-   sudo nano /boot/extlinux/extlinux.conf
-   #    fdtoverlays  /boot/dtbo/rk3568-i2c4-m0.dtbo ...  /boot/dtbo/radxa-zero3-rpi-camera-v2.dtbo
-   # ③ 重新生成引导配置（命令在 /usr/sbin，普通 SSH 的 PATH 可能找不到，用全路径）
+   # ② 重新生成引导配置（命令在 /usr/sbin，普通 SSH 的 PATH 可能找不到，用全路径）
    sudo /usr/sbin/u-boot-update
+   # ③ 先确认新 overlay 真的进了 fdtoverlays 行，再重启！
+   grep fdtoverlays /boot/extlinux/extlinux.conf
    sudo reboot
-   # 不想手工编辑也可以用 Radxa 官方交互工具：sudo rsetup（Hardware peripherals 菜单）
+   # 不想手工改名也可以用 Radxa 官方交互工具：sudo rsetup（Hardware peripherals 菜单）
    ```
+
+   ⚠️ **第 ③ 步的 `grep` 不能省**：`fdtoverlays` 行是自动生成的，没看到你的 dtbo 就直接
+   重启，等于白重启一次。预期输出：
+
+   ```
+   fdtoverlays  /boot/dtbo/rk3568-i2c4-m0.dtbo /boot/dtbo/rk3568-npu-enable.dtbo /boot/dtbo/rk3568-uart2-m0.dtbo /boot/dtbo/radxa-zero3-rpi-camera-v2.dtbo
+   ```
+
+   **§3.5.1 三个摄像头 overlay 怎么挑**（2026-09-22 反编译 dtbo 逐项对比 + 核对官方采集文档）：
+   候选三个：`rpi-camera-v2`（IMX219）、`radxa-camera-8m`（IMX219）、`rpi-camera-v1.3`（OV5647）。
+   前两个**除模组名字符串外完全等价**——同为 `sony,imx219`、`reg = <0x10>`、挂在 **i2c2** 上、
+   用 `i2c2m1_xfer` 引脚复用、`gpio3_22`（DT 里是 `<&gpio3 0x16 0>`）做 pwdn 上电控制、
+   24 MHz 外部时钟（`0x16e3600`）、`data-lanes = <1 2>`、`exclusive = "csi2_dphy0"`。
+   所以**前两个选哪个都不会让 probe 失败**（都是 IMX219，都能出图）；差别只落在 3A 校准
+   文件上：那个模组名字符串决定 rkaiq 去 `/etc/iqfiles/` 取哪个文件，命名规则是
+   `imx219_<module-name>_<lens-name>.json`，本机两套都在
+   （`imx219_RADXA-CAMERA-8M_default.json`、`imx219_rpi-camera-v2_default.json`）。
+
+   **默认选 `rpi-camera-v2`。** 两条依据，都不是靠视场角猜的：
+
+   1. **官方链路只在它上面跑过**：`microduck/docs/project/media-bringup.md` 明确写，这块板上
+      Armbian 只提供 `radxa-zero3-rpi-camera-v2`（Pi Cam v2 / IMX219）与 `-v1.3`（OV5647）
+      两个 overlay，**"Only the first has ever been used here"**。也就是说 `mediad` + rkaiq
+      这条完整链路**只被 IMX219 + 这个 overlay 的组合验证过**。
+   2. **市售模组的血统**："适用于树莓派 Pi5 的 IMX219 800 万模组"就是 **Pi Cam v2 系**，
+      与 `imx219_rpi-camera-v2_default.json` 同源。
+
+   ⚠️ **别拿"77° / 62.2°"当判据**：这两个数字大概率是**同一支镜头的对角视场与水平视场**
+   两种报法（§3.0.2 原文就写"77° 就是 Pi Cam v2 标准镜头"），商家页混用对角/水平，
+   拿它区分会选错。真正能区分的是**模组属于哪条产品线**。
+
+   | 你的模组 | 该选 | 依据 |
+   | --- | --- | --- |
+   | Pi 系 IMX219（含"适用于 Pi5"、77° 款） | `rpi-camera-v2` | 官方链路唯一验证过的组合 |
+   | Radxa Camera 8M 219（Radxa 自家模组） | `radxa-camera-8m` | 模组名要能匹配到自家校准文件 |
+   | OV5647（Pi Cam v1.3） | `rpi-camera-v1.3` | 配前两个 IMX219 overlay 必 probe 失败 |
+
+   选错了**不用重新接硬件**：改名 + `u-boot-update` + 重启两步即可（2026-09-22 实测，
+   从启用 overlay 到出图，硬件侧改动就只有这两步）。
+
+   > 📎 **接口是 22-pin / 0.5 mm**：`OpenMicroDuck/docs/main_controller.md` 记 Radxa ZERO 3W
+   > 相机接口为 22-pin、0.5 mm 间距、4-lane MIPI CSI，**与树莓派 5 的相机接口同规格**。
+   > 所以标称"适用于 Pi5"的 IMX219 模组排线可直接插，**不需要转接板**。
+   > 但**排线金手指朝向仍要对准座子丝印那一面**（翻盖式座子），装反有烧模组风险，
+   > 这一点只能靠肉眼确认，远端查不出来。
 
    > 📎 **官方文档的 Armbian 做法（在你机器上不适用，仅备查）**：Armbian 的 overlay 名靠
    > `overlay_prefix=rk3568` 解析，而 Armbian 把文件命名为不带前缀的
@@ -1331,7 +1388,40 @@ Radxa ZERO 3 上不可忽略。**不用头部 IMU 就保持默认关闭**，省�
    sudo systemctl enable --now mediad
    ```
 
-**验证命令**（接好摄像头后）：
+**先做不依赖 `mediad` 的裸验证阶梯**（2026-09-22 实测有效：重启后没起任何机器人服务
+   也能跑，四级哪一级断了就知道问题在哪一层）。⚠️ 本次实测是用 `radxa-camera-8m` 启用的
+   —— 按 §3.5.1 改用 `rpi-camera-v2` 后**这四级回显完全一致**（两者的差别只在 3A 校准
+   文件，不在这几层）：
+
+```bash
+ls /dev/i2c-2                                        # ① overlay 生效：启用前没有 i2c-2，启用后有
+ls -l /sys/bus/i2c/devices/2-0010/driver             # ② sensor probe：应指向 .../i2c/drivers/imx219
+media-ctl -p -d /dev/media0                          # ③ 链路连通：m00_b_imx219 2-0010 → rockchip-csi2-dphy0
+                                                     #    → rkisp-csi-subdev → rkisp-isp-subdev，链接标 [ENABLED]
+v4l2-ctl --list-devices                              # ④ 出节点：rkisp_mainpath 报 /dev/video0
+```
+
+`/dev/video0` 是 ISP mainpath，上限 **1920×1080**（不是 3280×2464——全分辨率要走 raw 通道，
+由 `mediad` 选路）。抓流自检：
+
+```bash
+timeout 25 v4l2-ctl -d /dev/video0 --stream-mmap --stream-count=45 --stream-to=/dev/null
+# 正常回显：每 30 个 < 换一行并打印 fps（实测 "29.96 fps"；< 的总数 = 实际抓到的帧数）
+```
+
+> ⚠️ **画面发灰偏绿是正常的，别去修硬件**：`v4l2-ctl -d /dev/v4l-subdev3 --get-ctrl
+> exposure,analogue_gain` 会看到两个值冻结在驱动默认值附近（实测 `exposure=1589`、
+> `analogue_gain=313`，连抓 45 帧**纹丝不动**）。原因是 **RK3566 的 3A（自动曝光 / 自动
+> 白平衡）由用户态 `rkaiq_3A_server` 算**，而它由 `mediad` 拉起——没起 3A 时 ISP 套默认
+> 参数、Bayer 不做白平衡校正，**偏绿是必然结果而不是故障**（实测色度 U≈125 / V≈124，
+> 中性应为 128）。`/usr/bin/rkaiq_3A_server` 与 `camera-engine-rkaiq` 包本身是装好的，
+> 起 `mediad` 后应自行消失。
+>
+> 反过来说，这条也顺带验证了 **MIPI 数据 lane 配对正确**：lane 接错的表现是绿紫条纹或
+> 水平撕裂，而不是整幅均匀偏色。判据还有一条：**图里能认出实物轮廓**（实测抓到天花板
+> 灯管 + 纸箱，箱面印刷字可辨）。
+
+**验证命令**（`mediad` 起来之后）：
 
 ```bash
 robotctl health          # [media] 段显示摄像头型号和分辨率为正常
@@ -1361,7 +1451,8 @@ robotctl frame           # 存一帧到本机：机器人视角的一张快照�
 | 换上新舵机不认                 | 新舵机出厂 ID 1 / 57.6 kbps                          | 等`robotd` 启动"收养"周期（§3.2），看 `journalctl -u robotd`                            |
 | 某个关节指令 vs 实际偏差大     | monitor 该关节偏差                                   | 机械卡死/齿轮滑齿，拆下人工转确认                                                            |
 | monitor 重力方向不对           | IMU 安装方向                                         | 重装 IMU 板或改标定，别硬调控制参数                                                          |
-| 摄像头黑屏 | overlay 有没有去掉 `.disabled` 并写进 `fdtoverlays` 行（Radxa OS） | `sudo journalctl -u mediad -n 30` 看具体报错；`dmesg \| grep -i imx219` 看 sensor 有没有 probe 到（详见 §3.5，**别再按 Armbian 的 rk3568- 前缀镜像法排查**） |
+| 摄像头黑屏 | 按 §3.5 的四级裸验证定位：`ls /dev/i2c-2` → `/sys/bus/i2c/devices/2-0010/driver` → `media-ctl -p -d /dev/media0` → `v4l2-ctl --list-devices`，哪级断就是哪层的事 | ①断 = overlay 没生效（`grep fdtoverlays /boot/extlinux/extlinux.conf` 确认）；②断 = 没插好或 overlay 选错（OV5647 配 IMX219 overlay 必失败）；①②正常仍黑屏再 `sudo journalctl -u mediad -n 30`。**别再按 Armbian 的 rk3568- 前缀镜像法排查** |
+| 画面发灰/发绿、曝光不随光线变 | `v4l2-ctl -d /dev/v4l-subdev3 --get-ctrl exposure,analogue_gain`，抓几十帧看值动不动 | 冻结 = **3A 没跑**（3A 在用户态 `rkaiq_3A_server`，由 `mediad` 拉起），**不是硬件故障**；先看 `systemctl is-active mediad`。详见 §3.5 |
 | ToF 无数据但 tofd 活着         | `/run/tofd/tof.sock`、I2C 地址                     | `i2cdetect -y 4` 看设备在不在总线上                                                        |
 | 负载莫名飙高                   | `systemctl show mediad -p NRestarts`               | **没接摄像头时 mediad 崩溃循环**，先 `disable --now`，接好再 enable（你已踩过）      |
 
@@ -1767,6 +1858,7 @@ SSH 上板：`sudo robotctl update rollback daemon`。再不行就上板刷机�
 
 | 版本 | 日期       | 内容                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | ---- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| v1.23 | 2026-09-22 | **摄像头首次实机点亮（IMX219 链路验证完成）**。§3.5 重写 overlay 启用流程：实测**不需要手工编辑 extlinux.conf**——`u-boot-update` 会把 `/boot/dtbo/` 下所有不带 `.disabled` 的 `.dtbo` 自动写进 `fdtoverlays`（附三条实测对应证据），启用简化为"改名 + `u-boot-update`"两步，并新增第 ③ 步 `grep fdtoverlays` 前置检查（防白重启一次）。新增 **§3.5.1 三个 overlay 怎么挑**：反编译 dtbo 证明 `rpi-camera-v2` 与 `radxa-camera-8m` 除模组名字符串外**完全等价**（`sony,imx219` / `reg 0x10` / i2c2 M1 / `gpio3_22` pwdn / 24 MHz 外部时钟 / `data-lanes <1 2>` / `csi2_dphy0`），故 probe 成败与选哪个无关，差别只在 rkaiq 取哪套 `imx219_<module-name>_<lens-name>.json`；**依据官方 `media-bringup.md` 的"Only the first has ever been used here"把默认选项定为 `rpi-camera-v2`**，并纠正 v1.21 用"77°"挑 overlay 的做法（77° / 62.2° 疑为同一镜头的对角与水平两种报法，不可作判据）。新增**四级裸验证阶梯**（`/dev/i2c-2` → `2-0010/driver` → `media-ctl -p -d /dev/media0` → `v4l2-ctl --list-devices`，含实测回显）与抓流自检（45 帧 @ 29.96 fps），**取代原先"dmesg 看 Model ID"**（`dmesg` 需 sudo，且只证 probe 成功、不证链路连通）。⚠️ **新增关键结论：画面发灰偏绿不是硬件故障**——3A 由用户态 `rkaiq_3A_server` 计算、由 `mediad` 拉起；未起 3A 时实测 `exposure` / `analogue_gain` 全程冻结（1589 / 313，抓 45 帧纹丝不动）、色度 U≈125 / V≈124 偏绿；同时给出反证：lane 接错的表现是绿紫条纹或水平撕裂，而非整幅均匀偏色。§3.7 故障表摄像头行改为按四级阶梯定位，并新增"画面发灰/发绿、曝光不随光线变"一行。§3.0.2 顺手修正：camera overlay 是**三个**不是两个；"收到后验证"改指新阶梯，并回填实测节点形态（`/dev/media0` + `/dev/video0~9` + `/dev/video-camera0 -> video0`）。**新增待验证项**：改 overlay 为 `rpi-camera-v2` 后起 `mediad` 复测色彩（3A 生效时应消失偏绿） |
 | v1.22 | 2026-09-17 | 按 CAD 模型实测复核 §3.0.2 **轴承**采购项（此前只照抄 `bom.md`）。新增"轴承怎么买"详注块：**尺寸双重确认**——解析训练模型两个轴承网格包围盒，`seeed_bearing__configuration_default` = 外径 15 × 厚 3（= 6700K）、`...__22x16x4` = 外径 22 × 厚 4（= ET2216），与 `bom.md` 逐字吻合；⚠️ 提示 **6700K 必须买"厚 3"薄款**（市面常见 6700 标准件是 10×15×4，买错会顶装配面）；❗ **指出数量冲突**：`bom.md` 写 ET2216 ×1，而 CAD 模型里 16×22×4 出现 **11 次**（躯干×2、yaw2roll、bearing_roll、左右髋、左右膝、neck_pitch、yaw_roll_motion×2，约每关节一个），标注"下单前看装配图/问作者确认，宁按 11 备料"，并给出复核命令（在 `robot_openmicroduck_groundcontact.xml` 搜 `seeed_bearing` 数 `class="visual"` 行数）。原文"轴承 6700K × 3 与 ET2216 × 1"保留但指向该注 |
 | v1.21 | 2026-09-17 | **按板子实测全面校正 §3 硬件章（非照抄官方文档）**。§3.0 新增"本机实测基线"（Radxa OS / Debian 12 bookworm，内核 6.1.84-10-rk2410-nocsf，2 GB，AIC8800；已启用 overlay 清单）；**NPU 节点纠错**：by-path `platform-fde40000.npu-render` 实测指向 **renderD129**（renderD128=display、renderD130=GPU），改为按 by-path 识别、编号不固定；**I²C 总线纠错**：本机 overlay 是 `rk3568-i2c4-m0` → `/dev/i2c-4`（OpenMicroDuck 文档写的"I²C3 M0"与本机设备树不符，注明以实测为准）；UART2 serial-getty 段去掉"Armbian 默认坑"归因，改两系统通用 + 本机实测 `masked`；`fuser` 命令补 sudo。§3.0.2 **摄像头纠错与选型**：IMX219 是 **800 万**（3280×2464，官方 BOM"500 万"系误写，500 万是 OV5647）；明确下单规格 77° 800 万裸模组，凭本机 overlay + `/etc/iqfiles/`（无 IMX519）+ mediad 硬编码三重证据排除 IMX519/OV5647/广角款。§3.5 摄像头 overlay 启用改为 **Radxa OS 实际流程**（去 `.disabled` + fdtoverlays 完整路径 + `/usr/sbin/u-boot-update`，摄像头 overlay 不带 rk3568 前缀），Armbian 前缀镜像法降级为"仅备查、本机不适用"；§3.7 故障表摄像头行同步改写；音频补"无 HAT 时只有 rockchip-hdmi 声卡"实测 |
 | v1.20 | 2026-09-17 | 按"彩排→发布→上板"实测校正 §2 全链路逻辑。§2 路线图：把"发布到 HF"改为**可选分叉**（自用可直接本地占槽）。§2.3 重写为 2.3.1 训练仓彩排 / 2.3.2 上板仓彩排六步：新增装 Rust（rsproxy 镜像）、用 codeload 把上板仓代码弄到板子、crates `sparse+` 镜像、URL 被渲染成代码样式导致的反引号复制陷阱、彩排结果判定表、"彩排≠上板"警示。§2.4 新增"发布非必经之路"分流；HF token 创建按实际页面（Fine-grained + ⬆ Write 预设）；明确登录/发布都在**开发机**、板子不需要 HF token；新增 `kind`→安装去向映射表（`episodic`→技能 / `perpetual --unwind-s`→`--hold` 技能 / `perpetual`→槽位）、`--slot` 仅显示用、`--force` 覆盖规则、同一份 ONNX 两种装法对比。§2.5 修正 `policy load` 为持久写入（非"临时试试"）；新增"路径不存在会被当成 `org/name` 仓库"判定规则（`is not an org/name repo`）；新增槽位三来源表与 `sitstand`/`ground_pick` 的 encoding 约束；新增实测 `policy list` 输出（`stand` 槽默认空）；新增 `accepted but had not made it after 20s` 报错解读（配置已写入 vs live 未生效 + journalctl 舵机自检证据 + `reset` 撤销）；补 standup 触发链路。§5 阶段 2 补"可跳过发布"等价路径与文件必须存在的提醒 |
