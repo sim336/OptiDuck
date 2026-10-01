@@ -28,7 +28,7 @@ import androidx.compose.ui.unit.sp
 
 /** 功能地图页：完整复刻官方 console 功能区块，全部标注未实现。 */
 @Composable
-fun FuncScreen(mod: Modifier) {
+fun FuncScreen(mod: Modifier, onOpenVideo: () -> Unit = {}) {
     Column(
         modifier = mod
             .fillMaxSize()
@@ -47,10 +47,14 @@ fun FuncScreen(mod: Modifier) {
         }
 
         Section("视频") {
-            Text("实时画面（待接入 WebRTC）", fontSize = 13.sp, color = Color(0xFF6C7086))
-            RowItem("Bitrate", "—"); RowItem("Ducks", "—")
-            RowItem("FPS", "—"); RowItem("Loss", "—"); RowItem("RTT", "—")
-            Hint("画面上拖动可看向指定点，摄像头默认旋转 90°。")
+            Text("实时画面已接入，走「画面」页", fontSize = 13.sp, color = Color(0xFFCDD6F4))
+            OutlinedButton(
+                onClick = onOpenVideo,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 3.dp)
+            ) {
+                Text("打开画面页 · MJPEG 640×480@15", fontSize = 13.sp)
+            }
+            Hint("自己抓 ISP 输出软编 JPEG（板端 report_video.py，8072），不经 mediad；官方 console 的 WebRTC 指标 bitrate / loss / RTT 仍未接入。")
         }
 
         Section("驾驶") {

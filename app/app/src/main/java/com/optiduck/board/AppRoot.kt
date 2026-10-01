@@ -7,6 +7,7 @@ import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Terminal
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -23,10 +24,11 @@ import androidx.compose.ui.graphics.vector.ImageVector
 @Composable
 fun AppRoot(app: Activity) {
     var tab by rememberSaveable { mutableStateOf(0) }
-    val tabs = listOf("连接", "状态", "功能", "终端")
+    val tabs = listOf("连接", "状态", "画面", "功能", "终端")
     val icons = listOf(
         Icons.Filled.Settings,
         Icons.Filled.CloudQueue,
+        Icons.Filled.Videocam,
         Icons.AutoMirrored.Filled.MenuBook,
         Icons.Filled.Terminal
     )
@@ -49,8 +51,9 @@ fun AppRoot(app: Activity) {
         when (tab) {
             0 -> ConnectScreen(mod)
             1 -> StatusScreen(mod)
-            2 -> FuncScreen(mod)
-            3 -> TerminalScreen(mod)
+            2 -> VideoScreen(mod)
+            3 -> FuncScreen(mod) { tab = 2 }
+            4 -> TerminalScreen(mod)
         }
     }
 }
