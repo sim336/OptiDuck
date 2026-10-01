@@ -16,6 +16,8 @@ imu2uart/MDK-ARM/*.lst
 imu2uart/MDK-ARM/*.uvguix.*
 imu2uart/MDK-ARM/JLinkLog.txt
 imu2uart/MDK-ARM/JLinkSettings.ini
+imu2uart/MDK-ARM/DebugConfig/
+imu2uart/MDK-ARM/RTE/
 
 # ===== 本机 / 会话私有：不入库 =====
 # 板子当前地址、内网信息
