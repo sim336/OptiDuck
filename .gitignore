@@ -1,9 +1,21 @@
 # ===== 大体积原始数据：作为 GitHub Release 附件发布，不进 git 历史 =====
 model_archive/
 bam_dryrun/
+# 台架 / 分析 / sysid 原始数据（csv + md），单个 bench csv 就有 7 MB
+logs/
 
 # microduck_rl 的旧纯拷贝快照（已被 microduck_rl 子模块取代）
 joyandai/microduck_rl/
+
+# ===== imu2uart：STM32 CubeMX 固件，只入库自研源码 =====
+# vendor 库（CubeMX 自带）与 Keil 编译产物都不进历史，可由 CubeMX / Keil 再生
+imu2uart/Drivers/
+imu2uart/Middlewares/
+imu2uart/MDK-ARM/1_Task_Creation/
+imu2uart/MDK-ARM/*.lst
+imu2uart/MDK-ARM/*.uvguix.*
+imu2uart/MDK-ARM/JLinkLog.txt
+imu2uart/MDK-ARM/JLinkSettings.ini
 
 # ===== 本机 / 会话私有：不入库 =====
 # 板子当前地址、内网信息
